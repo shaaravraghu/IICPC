@@ -1,0 +1,4 @@
+- [Clerk CSS import quirk](clerk-css-import.md) — `@clerk/themes/shadcn.css` must be installed in the artifact's own package; workspace root install is insufficient for Vite to resolve it.
+- [Vite + Tailwind v4 + Clerk](vite-tailwind-clerk.md) — `tailwindcss({ optimize: false })` is required or Clerk CSS layers get reordered in production builds.
+- [FunctionDef DB vs API mapping](function-def-mapping.md) — DB stores `parametersJson`/`tagsJson` as text; API routes parse to `parameters`/`tags` arrays before Zod response parsing strips the raw strings.
+- [Simulated test runs](simulated-test-runs.md) — `simulateRun()` in submissions.ts drives a 7s async state machine writing realistic scores; no real infra needed in dev.

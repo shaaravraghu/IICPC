@@ -3,13 +3,26 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: IICPC Distributed Benchmarking Platform API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: profile
+    description: User profile
+  - name: submissions
+    description: Code submissions
+  - name: leaderboard
+    description: Live leaderboard
+  - name: pipeline
+    description: Pipeline monitoring
+  - name: functions
+    description: Predefined functions library
+  - name: botfleet
+    description: Bot fleet status
+
 paths:
   /healthz:
     get:
@@ -24,6 +37,269 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /profile:
+    get:
+      operationId: getProfile
+      tags: [profile]
+      summary: Get current user profile
+      responses:
+        "200":
+          description: Profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+    patch:
+      operationId: updateProfile
+      tags: [profile]
+      summary: Update user profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserProfileUpdate"
+      responses:
+        "200":
+          description: Updated profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+
+  /submissions:
+    get:
+      operationId: listSubmissions
+      tags: [submissions]
+      summary: List all submissions (own + others for leaderboard view)
+      parameters:
+        - name: userId
+          in: query
+          schema:
+            type: string
+          description: Filter by user
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        "200":
+          description: List of submissions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Submission"
+    post:
+      operationId: createSubmission
+      tags: [submissions]
+      summary: Upload a new code submission
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SubmissionInput"
+      responses:
+        "201":
+          description: Created submission
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Submission"
+
+  /submissions/{id}:
+    get:
+      operationId: getSubmission
+      tags: [submissions]
+      summary: Get a single submission
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Submission detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Submission"
+
+  /submissions/{id}/run:
+    post:
+      operationId: runSubmission
+      tags: [submissions]
+      summary: Trigger a new test run for a submission
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RunConfig"
+      responses:
+        "202":
+          description: Run started
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TestRun"
+
+  /submissions/{id}/telemetry:
+    get:
+      operationId: getSubmissionTelemetry
+      tags: [submissions]
+      summary: Get telemetry data for the latest test run
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Telemetry data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TelemetryData"
+
+  /leaderboard:
+    get:
+      operationId: getLeaderboard
+      tags: [leaderboard]
+      summary: Get all ranked submissions
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+      responses:
+        "200":
+          description: Ranked leaderboard entries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LeaderboardEntry"
+
+  /leaderboard/summary:
+    get:
+      operationId: getLeaderboardSummary
+      tags: [leaderboard]
+      summary: Get top 3 entries and stats
+      responses:
+        "200":
+          description: Leaderboard summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LeaderboardSummary"
+
+  /pipeline/status:
+    get:
+      operationId: getPipelineStatus
+      tags: [pipeline]
+      summary: Get overall pipeline component health
+      responses:
+        "200":
+          description: Pipeline status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PipelineStatus"
+
+  /pipeline/runs:
+    get:
+      operationId: listPipelineRuns
+      tags: [pipeline]
+      summary: List recent pipeline run activity
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+      responses:
+        "200":
+          description: Recent pipeline runs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TestRun"
+
+  /functions:
+    get:
+      operationId: listFunctions
+      tags: [functions]
+      summary: List all predefined functions in the library
+      parameters:
+        - name: category
+          in: query
+          schema:
+            type: string
+          description: Filter by category (technical, fundamental, sentiment)
+        - name: q
+          in: query
+          schema:
+            type: string
+          description: Search query
+      responses:
+        "200":
+          description: Functions list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/FunctionDef"
+
+  /functions/{id}:
+    get:
+      operationId: getFunction
+      tags: [functions]
+      summary: Get full details of a predefined function
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Function detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FunctionDef"
+
+  /botfleet/status:
+    get:
+      operationId: getBotFleetStatus
+      tags: [botfleet]
+      summary: Get bot fleet class status and counts
+      responses:
+        "200":
+          description: Bot fleet status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BotFleetStatus"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +310,331 @@ components:
       required:
         - status
 
+    UserProfile:
+      type: object
+      required: [id, clerkId, username, email, createdAt]
+      properties:
+        id:
+          type: integer
+        clerkId:
+          type: string
+        username:
+          type: string
+        email:
+          type: string
+        bio:
+          type: ["string", "null"]
+        githubUrl:
+          type: ["string", "null"]
+        teamName:
+          type: ["string", "null"]
+        totalSubmissions:
+          type: integer
+        bestScore:
+          type: ["number", "null"]
+        rank:
+          type: ["integer", "null"]
+        createdAt:
+          type: string
+
+    UserProfileUpdate:
+      type: object
+      properties:
+        username:
+          type: string
+        bio:
+          type: string
+        githubUrl:
+          type: string
+        teamName:
+          type: string
+
+    Submission:
+      type: object
+      required: [id, userId, language, status, createdAt]
+      properties:
+        id:
+          type: string
+        userId:
+          type: string
+        username:
+          type: string
+        teamName:
+          type: ["string", "null"]
+        language:
+          type: string
+          enum: [cpp, rust, go]
+        filename:
+          type: string
+        status:
+          type: string
+          enum: [pending, building, running, completed, failed]
+        speedScore:
+          type: ["number", "null"]
+        stabilityScore:
+          type: ["number", "null"]
+        correctnessScore:
+          type: ["number", "null"]
+        compositeScore:
+          type: ["number", "null"]
+        p50Latency:
+          type: ["number", "null"]
+        p99Latency:
+          type: ["number", "null"]
+        tps:
+          type: ["number", "null"]
+        createdAt:
+          type: string
+        completedAt:
+          type: ["string", "null"]
+
+    SubmissionInput:
+      type: object
+      required: [language, filename, code]
+      properties:
+        language:
+          type: string
+          enum: [cpp, rust, go]
+        filename:
+          type: string
+        code:
+          type: string
+
+    RunConfig:
+      type: object
+      properties:
+        technicalBotCount:
+          type: integer
+          default: 100
+        fundamentalBotCount:
+          type: integer
+          default: 50
+        sentimentBotCount:
+          type: integer
+          default: 50
+        durationSeconds:
+          type: integer
+          default: 60
+
+    TestRun:
+      type: object
+      required: [id, submissionId, status, startedAt]
+      properties:
+        id:
+          type: string
+        submissionId:
+          type: string
+        status:
+          type: string
+          enum: [queued, building, running, scoring, completed, failed]
+        currentStage:
+          type: ["string", "null"]
+        progressPct:
+          type: ["integer", "null"]
+        startedAt:
+          type: string
+        completedAt:
+          type: ["string", "null"]
+
+    TelemetryData:
+      type: object
+      required: [submissionId]
+      properties:
+        submissionId:
+          type: string
+        p50Latency:
+          type: ["number", "null"]
+        p90Latency:
+          type: ["number", "null"]
+        p99Latency:
+          type: ["number", "null"]
+        peakTps:
+          type: ["number", "null"]
+        avgTps:
+          type: ["number", "null"]
+        totalOrders:
+          type: ["integer", "null"]
+        fillAccuracy:
+          type: ["number", "null"]
+        uptimePct:
+          type: ["number", "null"]
+        latencySeries:
+          type: array
+          items:
+            $ref: "#/components/schemas/TimeSeriesPoint"
+        tpsSeries:
+          type: array
+          items:
+            $ref: "#/components/schemas/TimeSeriesPoint"
+
+    TimeSeriesPoint:
+      type: object
+      required: [t, v]
+      properties:
+        t:
+          type: string
+        v:
+          type: number
+
+    LeaderboardEntry:
+      type: object
+      required: [rank, submissionId, userId, username, compositeScore]
+      properties:
+        rank:
+          type: integer
+        submissionId:
+          type: string
+        userId:
+          type: string
+        username:
+          type: string
+        teamName:
+          type: ["string", "null"]
+        language:
+          type: string
+        compositeScore:
+          type: number
+        speedScore:
+          type: number
+        stabilityScore:
+          type: number
+        correctnessScore:
+          type: number
+        p99Latency:
+          type: ["number", "null"]
+        tps:
+          type: ["number", "null"]
+        completedAt:
+          type: string
+
+    LeaderboardSummary:
+      type: object
+      required: [totalParticipants, totalSubmissions, top3]
+      properties:
+        totalParticipants:
+          type: integer
+        totalSubmissions:
+          type: integer
+        activeRuns:
+          type: integer
+        top3:
+          type: array
+          items:
+            $ref: "#/components/schemas/LeaderboardEntry"
+        bestP99:
+          type: ["number", "null"]
+        bestTps:
+          type: ["number", "null"]
+
+    PipelineStatus:
+      type: object
+      required: [overall, components, updatedAt]
+      properties:
+        overall:
+          type: string
+          enum: [healthy, degraded, down]
+        components:
+          type: array
+          items:
+            $ref: "#/components/schemas/ComponentHealth"
+        activeRuns:
+          type: integer
+        queueDepth:
+          type: integer
+        updatedAt:
+          type: string
+
+    ComponentHealth:
+      type: object
+      required: [name, status]
+      properties:
+        name:
+          type: string
+        status:
+          type: string
+          enum: [healthy, degraded, down]
+        description:
+          type: string
+        latencyMs:
+          type: ["number", "null"]
+        throughput:
+          type: ["number", "null"]
+
+    FunctionDef:
+      type: object
+      required: [id, name, category, description, signature]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        category:
+          type: string
+          enum: [technical, fundamental, sentiment, orderbook, utility]
+        description:
+          type: string
+        signature:
+          type: string
+        codeExample:
+          type: string
+        parameters:
+          type: array
+          items:
+            $ref: "#/components/schemas/FunctionParam"
+        returns:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+
+    FunctionParam:
+      type: object
+      required: [name, type, description]
+      properties:
+        name:
+          type: string
+        type:
+          type: string
+        description:
+          type: string
+        optional:
+          type: boolean
+
+    BotFleetStatus:
+      type: object
+      required: [totalBots, classes]
+      properties:
+        totalBots:
+          type: integer
+        activeBots:
+          type: integer
+        classes:
+          type: array
+          items:
+            $ref: "#/components/schemas/BotClassStatus"
+        messageTransport:
+          type: string
+          description: "nats or kafka depending on config"
+        orchestrator:
+          type: string
+          description: "swarm or kubernetes depending on config"
+
+    BotClassStatus:
+      type: object
+      required: [class, count, status]
+      properties:
+        class:
+          type: string
+          enum: [technical, fundamental, sentiment]
+        count:
+          type: integer
+        activeCount:
+          type: integer
+        status:
+          type: string
+          enum: [idle, running, stopped]
+        ordersPerSecond:
+          type: ["number", "null"]
+        description:
+          type: string
