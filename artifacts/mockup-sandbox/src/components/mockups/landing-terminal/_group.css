@@ -1,0 +1,63 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400;1,700&display=swap');
+
+.font-terminal {
+  font-family: 'Space Mono', monospace;
+}
+
+.terminal-bg {
+  background-color: #060607;
+  background-image: radial-gradient(rgba(0, 229, 204, 0.1) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+.terminal-cyan {
+  color: #00e5cc;
+}
+
+.terminal-cyan-bg {
+  background-color: #00e5cc;
+}
+
+.terminal-cyan-border {
+  border-color: #00e5cc;
+}
+
+.animate-blink {
+  animation: blink 1s step-end infinite;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+.tick-animation::after {
+  content: '24.12';
+  animation: tick 1s steps(10) infinite;
+}
+
+@keyframes tick {
+  0% { content: '24.12'; }
+  10% { content: '48.33'; }
+  20% { content: '72.01'; }
+  30% { content: '98.54'; }
+  40% { content: '12.44'; }
+  50% { content: '34.99'; }
+  60% { content: '56.12'; }
+  70% { content: '78.23'; }
+  80% { content: '89.44'; }
+  90% { content: '94.12'; }
+  100% { content: '99.99'; }
+}
+
+.scanline {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0) 50%, rgba(0, 0, 0, 0.2) 50%, rgba(0, 0, 0, 0.2));
+  background-size: 100% 4px;
+  pointer-events: none;
+  z-index: 50;
+}
