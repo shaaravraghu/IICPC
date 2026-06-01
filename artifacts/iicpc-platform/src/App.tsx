@@ -127,14 +127,67 @@ function ClerkQueryClientCacheInvalidator() {
 
 function ProtectedLayout({ children }: { children: React.ReactNode }) {
   return (
-    <Show when="signed-in">
-      <SidebarProvider>
-        <AppSidebar />
-        <main className="flex-1 overflow-auto bg-background flex flex-col min-h-screen">
-          {children}
-        </main>
-      </SidebarProvider>
-    </Show>
+    <>
+      <Show when="signed-in">
+        <SidebarProvider>
+          <AppSidebar />
+          <main className="flex-1 overflow-auto bg-background flex flex-col min-h-screen">
+            {children}
+          </main>
+        </SidebarProvider>
+      </Show>
+      <Show when="signed-out">
+        <LandingPage />
+      </Show>
+    </>
+  );
+}
+
+function LandingPage() {
+  return (
+    <div className="min-h-screen bg-background flex flex-col items-center justify-center px-4 text-center">
+      <div className="mb-6">
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-primary/30 bg-primary/10 text-primary text-xs font-mono uppercase tracking-widest mb-6">
+          <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse inline-block" />
+          IICPC Summer Hackathon 2026
+        </div>
+        <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-foreground mb-3">
+          Distributed Benchmarking<br />Platform
+        </h1>
+        <p className="text-muted-foreground text-lg max-w-md mx-auto">
+          Submit your exchange engine. Survive 200 synthetic bots. Claim the top spot.
+        </p>
+      </div>
+
+      <div className="flex gap-3 mb-12">
+        <a
+          href={`${basePath}/sign-in`}
+          className="inline-flex items-center justify-center h-10 px-6 rounded bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition-colors"
+        >
+          Sign In
+        </a>
+        <a
+          href={`${basePath}/sign-up`}
+          className="inline-flex items-center justify-center h-10 px-6 rounded border border-border text-foreground text-sm font-semibold hover:bg-card transition-colors"
+        >
+          Register
+        </a>
+      </div>
+
+      <div className="grid grid-cols-3 gap-4 text-left max-w-lg w-full">
+        {[
+          { label: "Bot Types", value: "3", sub: "Technical · Fundamental · Sentiment" },
+          { label: "Languages", value: "3", sub: "C++ · Rust · Go" },
+          { label: "Metrics", value: "3", sub: "Speed · Stability · Correctness" },
+        ].map((s) => (
+          <div key={s.label} className="bg-card border border-border rounded p-4">
+            <div className="text-2xl font-bold font-mono text-primary">{s.value}</div>
+            <div className="text-xs text-muted-foreground font-mono uppercase mt-0.5">{s.label}</div>
+            <div className="text-[10px] text-muted-foreground/60 mt-1">{s.sub}</div>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
 
