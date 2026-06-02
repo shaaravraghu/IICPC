@@ -1,8 +1,8 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ClerkProvider, SignIn, SignUp, Show, useClerk } from "@clerk/react";
 import { publishableKeyFromHost } from "@clerk/react/internal";
 import { dark } from "@clerk/themes";
-import { Switch, Route, useLocation, Router as WouterRouter, Redirect } from "wouter";
+import { Switch, Route, useLocation, Router as WouterRouter } from "wouter";
 import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 
 import { Toaster } from "@/components/ui/toaster";
@@ -47,20 +47,20 @@ const clerkAppearance = {
     logoImageUrl: `${window.location.origin}${basePath}/logo.svg`,
   },
   variables: {
-    colorPrimary: "hsl(192 100% 50%)",
-    colorBackground: "hsl(240 10% 6%)",
-    colorInput: "hsl(240 10% 12%)",
-    colorInputForeground: "hsl(0 0% 98%)",
-    colorForeground: "hsl(0 0% 98%)",
-    colorMutedForeground: "hsl(240 5% 65%)",
+    colorPrimary: "#00e5cc",
+    colorBackground: "hsl(240 10% 4%)",
+    colorInput: "hsl(240 10% 8%)",
+    colorInputForeground: "hsl(0 0% 85%)",
+    colorForeground: "hsl(0 0% 85%)",
+    colorMutedForeground: "hsl(240 5% 50%)",
     colorDanger: "hsl(348 100% 58%)",
-    colorNeutral: "hsl(240 10% 12%)",
-    fontFamily: '"Inter", sans-serif',
-    borderRadius: "0.25rem",
+    colorNeutral: "hsl(240 10% 8%)",
+    fontFamily: '"Space Mono", monospace',
+    borderRadius: "0px",
   },
   elements: {
     rootBox: "w-full flex justify-center",
-    cardBox: "bg-[#0f0f10] rounded-sm w-[440px] max-w-full overflow-hidden border border-[#1c1c20]",
+    cardBox: "bg-[#060607] w-[440px] max-w-full overflow-hidden border border-[#00e5cc]/25",
     card: "!shadow-none !border-0 !bg-transparent !rounded-none",
     footer: "!shadow-none !border-0 !bg-transparent !rounded-none",
     headerTitle: "text-foreground",
@@ -143,50 +143,166 @@ function ProtectedLayout({ children }: { children: React.ReactNode }) {
   );
 }
 
+const LEADERBOARD_DATA = [
+  { rank: 1, team: "AlphaBot",     score: "99.84", latency: "1.2ms" },
+  { rank: 2, team: "NullPtr Team", score: "98.12", latency: "1.5ms" },
+  { rank: 3, team: "0xDEAD",       score: "95.44", latency: "2.1ms" },
+  { rank: 4, team: "FastLane",     score: "91.02", latency: "3.4ms" },
+  { rank: 5, team: "MemAligned",   score: "88.99", latency: "4.8ms" },
+];
+
+const PLATFORM_STATUS = [
+  { name: "NATS" },
+  { name: "DOCKER_SWARM" },
+  { name: "CLICKHOUSE" },
+  { name: "GO_BOTS" },
+];
+
 function LandingPage() {
+  const [time, setTime] = useState(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => setTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const timeStr = time.toISOString().split("T")[1].replace("Z", "");
+
   return (
-    <div className="min-h-screen bg-background flex flex-col items-center justify-center px-4 text-center">
-      <div className="mb-6">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-primary/30 bg-primary/10 text-primary text-xs font-mono uppercase tracking-widest mb-6">
-          <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse inline-block" />
-          IICPC Summer Hackathon 2026
+    <div className="min-h-screen bg-background text-foreground font-mono flex flex-col relative overflow-hidden">
+      {/* Top status bar */}
+      <div className="flex justify-between items-center border-b border-primary/25 px-6 py-2 text-xs shrink-0">
+        <div className="flex gap-3">
+          <span className="text-primary">SYS.TIME:</span>
+          <span>{timeStr}</span>
         </div>
-        <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-foreground mb-3">
-          Distributed Benchmarking<br />Platform
-        </h1>
-        <p className="text-muted-foreground text-lg max-w-md mx-auto">
-          Submit your exchange engine. Survive 200 synthetic bots. Claim the top spot.
-        </p>
+        <div className="flex gap-3">
+          <span className="text-primary">NET.STAT:</span>
+          <span className="text-green-400">OPTIMAL</span>
+        </div>
       </div>
 
-      <div className="flex gap-3 mb-12">
-        <a
-          href={`${basePath}/sign-in`}
-          className="inline-flex items-center justify-center h-10 px-6 rounded bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition-colors"
-        >
-          Sign In
-        </a>
+      {/* Main content */}
+      <main className="flex-1 max-w-6xl mx-auto w-full px-6 py-12 flex flex-col justify-center z-10">
+        {/* Hero */}
+        <div className="mb-14">
+          <h1 className="text-3xl md:text-5xl lg:text-6xl font-bold tracking-tight mb-6 leading-tight uppercase">
+            <span className="text-primary">{">"}</span>{" "}
+            IICPC_BENCHMARKING_
+            <br />
+            <span className="pl-8">
+              PLATFORM_2026
+              <span className="animate-blink text-primary">_</span>
+            </span>
+          </h1>
+          <p className="text-sm md:text-base text-muted-foreground max-w-3xl mb-8 leading-relaxed uppercase tracking-wide">
+            ELITE DISTRIBUTED EXCHANGE ENGINE COMPETITION. TOP 1% SYSTEMS
+            PROGRAMMERS ONLY. SUBMIT C++/RUST/GO ORDERBOOK ENGINES.
+            STRESS-TESTED BY 200 SYNTHETIC BOTS.
+          </p>
+
+          <div className="flex flex-wrap gap-4">
+            <a
+              href={`${basePath}/sign-in`}
+              className="border border-primary text-primary hover:bg-primary/15 px-8 py-3 uppercase tracking-widest text-sm transition-colors"
+            >
+              [CONNECT]
+            </a>
+            <a
+              href={`${basePath}/sign-up`}
+              className="bg-primary text-primary-foreground hover:bg-primary/80 px-8 py-3 uppercase tracking-widest text-sm font-bold transition-colors"
+            >
+              [REGISTER]
+            </a>
+          </div>
+        </div>
+
+        {/* Data panels */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Leaderboard */}
+          <div className="col-span-1 lg:col-span-2 term-panel p-6">
+            <div className="flex justify-between items-center border-b border-primary/25 pb-3 mb-4">
+              <h2 className="text-primary text-xs uppercase tracking-widest">
+                LIVE_LEADERBOARD
+              </h2>
+              <span className="text-xs text-muted-foreground animate-pulse">
+                UPDATING...
+              </span>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs text-left">
+                <thead className="text-muted-foreground uppercase border-b border-primary/15">
+                  <tr>
+                    <th className="px-2 py-2">RNK</th>
+                    <th className="px-2 py-2">TEAM_ID</th>
+                    <th className="px-2 py-2 text-right">SCORE</th>
+                    <th className="px-2 py-2 text-right">LATENCY</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {LEADERBOARD_DATA.map((row) => (
+                    <tr
+                      key={row.rank}
+                      className="border-b border-primary/10 hover:bg-primary/5 transition-colors"
+                    >
+                      <td className="px-2 py-3 text-primary font-bold">{row.rank}</td>
+                      <td className="px-2 py-3">{row.team}</td>
+                      <td className="px-2 py-3 text-right">{row.score}</td>
+                      <td className="px-2 py-3 text-right text-muted-foreground">{row.latency}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Side panels */}
+          <div className="col-span-1 space-y-6">
+            {/* Platform status */}
+            <div className="term-panel p-6">
+              <h2 className="text-primary text-xs uppercase tracking-widest border-b border-primary/25 pb-3 mb-4">
+                PLATFORM_STATUS
+              </h2>
+              <div className="space-y-3 text-xs">
+                {PLATFORM_STATUS.map((s) => (
+                  <div key={s.name} className="flex justify-between items-center">
+                    <span>{s.name}</span>
+                    <span className="text-green-400 tracking-wider">[ONLINE]</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Global metrics */}
+            <div className="term-panel p-6">
+              <h2 className="text-primary text-xs uppercase tracking-widest border-b border-primary/25 pb-3 mb-4">
+                GLOBAL_METRICS
+              </h2>
+              <div className="space-y-5 text-xs">
+                <div>
+                  <div className="text-muted-foreground mb-1">REQ/SEC</div>
+                  <div className="text-2xl text-primary font-bold tracking-wider">56.12</div>
+                </div>
+                <div>
+                  <div className="text-muted-foreground mb-1">ACTIVE_NODES</div>
+                  <div className="text-2xl font-bold tracking-wider">1,024</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+
+      {/* Footer */}
+      <footer className="border-t border-primary/25 px-6 py-3 text-xs text-muted-foreground flex flex-col md:flex-row justify-between items-center gap-3 z-10 shrink-0">
+        <div>IICPC_BENCHMARK_2026 // ALL_RIGHTS_RESERVED</div>
         <a
           href={`${basePath}/sign-up`}
-          className="inline-flex items-center justify-center h-10 px-6 rounded border border-border text-foreground text-sm font-semibold hover:bg-card transition-colors"
+          className="text-primary hover:text-foreground transition-colors"
         >
-          Register
+          INITIALIZE_REGISTRATION {">"}
         </a>
-      </div>
-
-      <div className="grid grid-cols-3 gap-4 text-left max-w-lg w-full">
-        {[
-          { label: "Bot Types", value: "3", sub: "Technical · Fundamental · Sentiment" },
-          { label: "Languages", value: "3", sub: "C++ · Rust · Go" },
-          { label: "Metrics", value: "3", sub: "Speed · Stability · Correctness" },
-        ].map((s) => (
-          <div key={s.label} className="bg-card border border-border rounded p-4">
-            <div className="text-2xl font-bold font-mono text-primary">{s.value}</div>
-            <div className="text-xs text-muted-foreground font-mono uppercase mt-0.5">{s.label}</div>
-            <div className="text-[10px] text-muted-foreground/60 mt-1">{s.sub}</div>
-          </div>
-        ))}
-      </div>
+      </footer>
     </div>
   );
 }
