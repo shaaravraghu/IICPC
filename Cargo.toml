@@ -1,0 +1,20 @@
+[workspace]
+resolver = "2"
+members = [
+  "libs/platform-types",
+  "libs/eval-algorithms",
+  "libs/strategy-parser",
+  "libs/kafka-utils",
+  "services/api-gateway",
+  "services/technical-agents",
+  "services/fundamental-agents",
+  "services/sentiment-agents",
+  "services/execution-sim",
+  "services/paper-trading",
+  "services/telemetry-judge",
+]
+
+[workspace.package]
+edition = "2021"
+license = "MIT"
+version = "0.1.0"

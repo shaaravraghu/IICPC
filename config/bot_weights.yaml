@@ -1,0 +1,21 @@
+technical:
+  momentum-breakout:
+    rsi: 0.45
+    vwap: 0.35
+    sma: 0.20
+  trend-confirmation:
+    sma: 0.50
+    rsi: 0.25
+    vwap: 0.25
+fundamental:
+  quality-compounders:
+    roic: 0.55
+    free_cash_flow_margin: 0.45
+sentiment:
+  news_reaction: 35
+  market_breadth: 30
+  volatility_regime: 35
+leaderboard:
+  signal_score: 40
+  execution_score: 35
+  paper_trading_score: 25

@@ -1,0 +1,62 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: technical-agents
+  namespace: iicpc-platform
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: technical-agents
+  template:
+    metadata:
+      labels:
+        app: technical-agents
+    spec:
+      serviceAccountName: iicpc-platform
+      containers:
+        - name: technical-agents
+          image: iicpc/technical-agents:local
+          imagePullPolicy: IfNotPresent
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fundamental-agents
+  namespace: iicpc-platform
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: fundamental-agents
+  template:
+    metadata:
+      labels:
+        app: fundamental-agents
+    spec:
+      serviceAccountName: iicpc-platform
+      containers:
+        - name: fundamental-agents
+          image: iicpc/fundamental-agents:local
+          imagePullPolicy: IfNotPresent
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sentiment-agents
+  namespace: iicpc-platform
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: sentiment-agents
+  template:
+    metadata:
+      labels:
+        app: sentiment-agents
+    spec:
+      serviceAccountName: iicpc-platform
+      containers:
+        - name: sentiment-agents
+          image: iicpc/sentiment-agents:local
+          imagePullPolicy: IfNotPresent
