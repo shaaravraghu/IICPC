@@ -1,0 +1,13 @@
+[package]
+name = "telemetry-judge"
+edition.workspace = true
+license.workspace = true
+version.workspace = true
+
+[dependencies]
+eval-algorithms = { path = "../../libs/eval-algorithms" }
+platform-types = { path = "../../libs/platform-types" }
+
+[[bin]]
+name = "telemetry-judge"
+path = "src/main.rs"

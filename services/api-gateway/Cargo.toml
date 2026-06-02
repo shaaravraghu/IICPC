@@ -1,0 +1,14 @@
+[package]
+name = "api-gateway"
+edition.workspace = true
+license.workspace = true
+version.workspace = true
+
+[dependencies]
+eval-algorithms = { path = "../../libs/eval-algorithms" }
+platform-types = { path = "../../libs/platform-types" }
+strategy-parser = { path = "../../libs/strategy-parser" }
+
+[[bin]]
+name = "api-gateway"
+path = "src/main.rs"

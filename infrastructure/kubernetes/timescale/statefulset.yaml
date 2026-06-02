@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: timescale
+  namespace: iicpc-platform
+spec:
+  serviceName: timescale
+  replicas: 1
+  selector:
+    matchLabels:
+      app: timescale
+  template:
+    metadata:
+      labels:
+        app: timescale
+    spec:
+      containers:
+        - name: timescale
+          image: timescale/timescaledb:latest-pg16
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_DB
+              value: iicpc
+            - name: POSTGRES_USER
+              value: iicpc
+            - name: POSTGRES_PASSWORD
+              value: iicpc-local-dev
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: timescale
+  namespace: iicpc-platform
+spec:
+  selector:
+    app: timescale
+  ports:
+    - port: 5432
+      targetPort: 5432

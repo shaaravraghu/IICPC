@@ -1,0 +1,22 @@
+topics:
+  - name: sys.market_data.live
+    partitions: 12
+    replicationFactor: 3
+  - name: stage1.technical.out
+    partitions: 12
+    replicationFactor: 3
+  - name: stage2.fundamental.out
+    partitions: 8
+    replicationFactor: 3
+  - name: stage3.sentiment.out
+    partitions: 8
+    replicationFactor: 3
+  - name: stage4.execution.out
+    partitions: 8
+    replicationFactor: 3
+  - name: stage5.paper_trading.out
+    partitions: 4
+    replicationFactor: 3
+  - name: sys.telemetry.metrics
+    partitions: 12
+    replicationFactor: 3

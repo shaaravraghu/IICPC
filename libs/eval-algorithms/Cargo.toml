@@ -1,0 +1,11 @@
+[package]
+name = "eval-algorithms"
+edition.workspace = true
+license.workspace = true
+version.workspace = true
+
+[dependencies]
+platform-types = { path = "../platform-types" }
+
+[lib]
+path = "src/lib.rs"

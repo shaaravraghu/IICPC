@@ -1,0 +1,31 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: iicpc-platform
+  namespace: iicpc-platform
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: iicpc-platform-runner
+  namespace: iicpc-platform
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "services", "configmaps"]
+    verbs: ["get", "list", "watch", "create", "update", "patch"]
+  - apiGroups: ["batch"]
+    resources: ["jobs"]
+    verbs: ["get", "list", "watch", "create", "update", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: iicpc-platform-runner
+  namespace: iicpc-platform
+subjects:
+  - kind: ServiceAccount
+    name: iicpc-platform
+roleRef:
+  kind: Role
+  name: iicpc-platform-runner
+  apiGroup: rbac.authorization.k8s.io

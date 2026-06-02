@@ -1,0 +1,59 @@
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: sys-market-data-live
+  namespace: iicpc-platform
+  labels:
+    strimzi.io/cluster: iicpc-kafka
+spec:
+  topicName: sys.market_data.live
+  partitions: 12
+  replicas: 3
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: stage1-technical-out
+  namespace: iicpc-platform
+  labels:
+    strimzi.io/cluster: iicpc-kafka
+spec:
+  topicName: stage1.technical.out
+  partitions: 12
+  replicas: 3
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: stage2-fundamental-out
+  namespace: iicpc-platform
+  labels:
+    strimzi.io/cluster: iicpc-kafka
+spec:
+  topicName: stage2.fundamental.out
+  partitions: 8
+  replicas: 3
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: stage3-sentiment-out
+  namespace: iicpc-platform
+  labels:
+    strimzi.io/cluster: iicpc-kafka
+spec:
+  topicName: stage3.sentiment.out
+  partitions: 8
+  replicas: 3
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: sys-telemetry-metrics
+  namespace: iicpc-platform
+  labels:
+    strimzi.io/cluster: iicpc-kafka
+spec:
+  topicName: sys.telemetry.metrics
+  partitions: 12
+  replicas: 3
