@@ -5,101 +5,310 @@ const functions = [
   // Technical Analysis
   {
     id: randomUUID(),
-    name: "rsi",
+    name: "trend_strength_adx",
     category: "technical",
-    description: "Relative Strength Index — momentum oscillator measuring speed and magnitude of price changes.",
-    signature: "rsi(prices: number[], period?: number): number",
-    codeExample: `const prices = [44.34, 44.09, 44.15, 43.61, 44.33, 44.83, 45.10, 45.15];
-const result = rsi(prices, 14);
-// result => 70.46 (overbought territory)`,
+    description: "Average Directional Index used to determine whether a trend exists and how strong it is.",
+    signature: "trend_strength_adx(highs: number[], lows: number[], closes: number[], period?: number): number",
+    codeExample: `const adx = trend_strength_adx(highs, lows, closes, 14);
+if (adx > 25) console.log("Strong trend");`,
     parametersJson: JSON.stringify([
-      { name: "prices", type: "number[]", description: "Array of closing prices" },
+      { name: "highs", type: "number[]", description: "High-price series" },
+      { name: "lows", type: "number[]", description: "Low-price series" },
+      { name: "closes", type: "number[]", description: "Close-price series" },
       { name: "period", type: "number", description: "Lookback period", optional: true },
     ]),
-    returns: "RSI value between 0 and 100",
-    tagsJson: JSON.stringify(["momentum", "oscillator", "overbought", "oversold"]),
+    returns: "ADX value between 0 and 100",
+    tagsJson: JSON.stringify(["trend", "strength", "directional-movement"]),
   },
   {
     id: randomUUID(),
-    name: "sma",
+    name: "relative_strength_vs_benchmark",
     category: "technical",
-    description: "Simple Moving Average — arithmetic mean of a given set of prices over a specific period.",
-    signature: "sma(prices: number[], period: number): number",
-    codeExample: `const prices = [10, 20, 30, 40, 50];
-const result = sma(prices, 5);
-// result => 30`,
+    description: "Measures whether the asset is outperforming or underperforming a benchmark over the same lookback period.",
+    signature: "relative_strength_vs_benchmark(prices: number[], benchmarkPrices: number[], period?: number): number",
+    codeExample: `const spread = relative_strength_vs_benchmark(assetPrices, indexPrices, 20);
+if (spread > 0) console.log("Outperforming benchmark");`,
     parametersJson: JSON.stringify([
-      { name: "prices", type: "number[]", description: "Array of prices" },
-      { name: "period", type: "number", description: "Averaging period" },
+      { name: "prices", type: "number[]", description: "Asset close-price series" },
+      { name: "benchmarkPrices", type: "number[]", description: "Benchmark close-price series" },
+      { name: "period", type: "number", description: "Relative-strength lookback", optional: true },
     ]),
-    returns: "Moving average value",
-    tagsJson: JSON.stringify(["average", "trend", "filter"]),
+    returns: "Relative performance spread in percentage points",
+    tagsJson: JSON.stringify(["relative-strength", "benchmark", "leadership"]),
   },
   {
     id: randomUUID(),
-    name: "ema",
+    name: "momentum_rate_of_change",
     category: "technical",
-    description: "Exponential Moving Average — weighted moving average that gives more weight to recent prices.",
-    signature: "ema(prices: number[], period: number): number",
-    codeExample: `const prices = [22.27, 22.19, 22.08, 22.17, 22.18, 22.13];
-const result = ema(prices, 10);
-// result => 22.22`,
+    description: "Measures the speed of price movement by comparing current price with price N periods ago.",
+    signature: "momentum_rate_of_change(prices: number[], period?: number): number",
+    codeExample: `const roc = momentum_rate_of_change(prices, 12);
+if (roc > 0) console.log("Positive momentum");`,
     parametersJson: JSON.stringify([
-      { name: "prices", type: "number[]", description: "Historical prices" },
-      { name: "period", type: "number", description: "EMA span" },
+      { name: "prices", type: "number[]", description: "Ordered price series" },
+      { name: "period", type: "number", description: "ROC lookback", optional: true },
     ]),
-    returns: "EMA value",
-    tagsJson: JSON.stringify(["average", "trend", "weighted"]),
+    returns: "Percentage rate of change",
+    tagsJson: JSON.stringify(["momentum", "velocity", "roc"]),
   },
   {
     id: randomUUID(),
-    name: "macd",
+    name: "rsi_regime_analysis",
     category: "technical",
-    description: "Moving Average Convergence Divergence — trend-following momentum indicator.",
-    signature: "macd(prices: number[], fast?: number, slow?: number, signal?: number): { macd: number; signal: number; histogram: number }",
-    codeExample: `const { macd: m, signal: s, histogram: h } = macd(prices, 12, 26, 9);
-if (m > s) console.log('Bullish crossover');`,
+    description: "Uses RSI persistence rather than a single snapshot to detect sustained buying or selling pressure.",
+    signature: "rsi_regime_analysis(prices: number[], period?: number): number",
+    codeExample: `const regime = rsi_regime_analysis(prices, 14);
+if (regime >= 60) console.log("Bullish RSI regime");`,
     parametersJson: JSON.stringify([
-      { name: "prices", type: "number[]", description: "Closing prices" },
-      { name: "fast", type: "number", description: "Fast EMA period (default 12)", optional: true },
-      { name: "slow", type: "number", description: "Slow EMA period (default 26)", optional: true },
-      { name: "signal", type: "number", description: "Signal line period (default 9)", optional: true },
+      { name: "prices", type: "number[]", description: "Close-price series" },
+      { name: "period", type: "number", description: "RSI lookback", optional: true },
     ]),
-    returns: "Object with macd, signal, and histogram values",
-    tagsJson: JSON.stringify(["momentum", "trend", "crossover"]),
+    returns: "Regime score between 0 and 100",
+    tagsJson: JSON.stringify(["rsi", "regime", "pressure"]),
   },
   {
     id: randomUUID(),
-    name: "bollinger_bands",
+    name: "macd_histogram_slope",
     category: "technical",
-    description: "Bollinger Bands — volatility bands placed above and below a moving average.",
-    signature: "bollinger_bands(prices: number[], period?: number, stdDev?: number): { upper: number; middle: number; lower: number }",
-    codeExample: `const { upper, middle, lower } = bollinger_bands(prices, 20, 2);
-const bandwidth = (upper - lower) / middle;`,
+    description: "Measures momentum acceleration or deceleration by observing the slope of the MACD histogram.",
+    signature: "macd_histogram_slope(prices: number[], fast?: number, slow?: number, signal?: number): number",
+    codeExample: `const slope = macd_histogram_slope(prices, 12, 26, 9);
+if (slope > 0) console.log("Momentum is accelerating");`,
+    parametersJson: JSON.stringify([
+      { name: "prices", type: "number[]", description: "Close-price series" },
+      { name: "fast", type: "number", description: "Fast EMA period", optional: true },
+      { name: "slow", type: "number", description: "Slow EMA period", optional: true },
+      { name: "signal", type: "number", description: "Signal EMA period", optional: true },
+    ]),
+    returns: "Signed slope value",
+    tagsJson: JSON.stringify(["macd", "momentum", "acceleration"]),
+  },
+  {
+    id: randomUUID(),
+    name: "realized_volatility",
+    category: "technical",
+    description: "Computes observed market uncertainty from the standard deviation of actual realized returns.",
+    signature: "realized_volatility(returns: number[], annualizationFactor?: number): number",
+    codeExample: `const vol = realized_volatility(dailyReturns, 252);
+if (vol > 30) console.log("High realized volatility");`,
+    parametersJson: JSON.stringify([
+      { name: "returns", type: "number[]", description: "Periodic return series" },
+      { name: "annualizationFactor", type: "number", description: "Annualization factor such as 252", optional: true },
+    ]),
+    returns: "Annualized volatility percentage",
+    tagsJson: JSON.stringify(["volatility", "risk", "realized"]),
+  },
+  {
+    id: randomUUID(),
+    name: "atr_expansion_contraction",
+    category: "technical",
+    description: "Detects volatility regime shifts by measuring whether Average True Range is expanding or contracting.",
+    signature: "atr_expansion_contraction(highs: number[], lows: number[], closes: number[], period?: number): number",
+    codeExample: `const regimeShift = atr_expansion_contraction(highs, lows, closes, 14);
+if (regimeShift > 0) console.log("ATR expansion underway");`,
+    parametersJson: JSON.stringify([
+      { name: "highs", type: "number[]", description: "High-price series" },
+      { name: "lows", type: "number[]", description: "Low-price series" },
+      { name: "closes", type: "number[]", description: "Close-price series" },
+      { name: "period", type: "number", description: "ATR lookback", optional: true },
+    ]),
+    returns: "Signed regime-shift score",
+    tagsJson: JSON.stringify(["atr", "volatility", "regime"]),
+  },
+  {
+    id: randomUUID(),
+    name: "bollinger_band_width",
+    category: "technical",
+    description: "Measures compression and expansion phases using the width between upper and lower Bollinger Bands.",
+    signature: "bollinger_band_width(prices: number[], period?: number, stdDev?: number): number",
+    codeExample: `const width = bollinger_band_width(prices, 20, 2);
+if (width < 0.05) console.log("Compression setup");`,
     parametersJson: JSON.stringify([
       { name: "prices", type: "number[]", description: "Price series" },
-      { name: "period", type: "number", description: "Period for middle band (default 20)", optional: true },
-      { name: "stdDev", type: "number", description: "Standard deviation multiplier (default 2)", optional: true },
+      { name: "period", type: "number", description: "Band lookback", optional: true },
+      { name: "stdDev", type: "number", description: "Standard deviation multiplier", optional: true },
     ]),
-    returns: "Object with upper, middle, lower band values",
-    tagsJson: JSON.stringify(["volatility", "bands", "mean-reversion"]),
+    returns: "Normalized band width ratio",
+    tagsJson: JSON.stringify(["bollinger", "volatility", "compression"]),
   },
   {
     id: randomUUID(),
-    name: "vwap",
+    name: "volume_profile",
     category: "technical",
-    description: "Volume-Weighted Average Price — average price weighted by volume, used as benchmark.",
-    signature: "vwap(candles: Array<{ high: number; low: number; close: number; volume: number }>): number",
-    codeExample: `const candles = [
-  { high: 48.70, low: 47.79, close: 48.16, volume: 1120000 },
-  { high: 48.72, low: 47.97, close: 48.61, volume: 1560000 },
-];
-const result = vwap(candles); // => 48.40`,
+    description: "Locates price levels that attracted the highest participation by distributing volume across price zones.",
+    signature: "volume_profile(candles: Array<{ high: number; low: number; close: number; volume: number }>, levels?: number): Array<{ price: number; volume: number }>",
+    codeExample: `const profile = volume_profile(candles, 12);
+const poc = profile.sort((a, b) => b.volume - a.volume)[0];`,
     parametersJson: JSON.stringify([
-      { name: "candles", type: "Array<Candle>", description: "Array of OHLCV candle objects" },
+      { name: "candles", type: "Array<Candle>", description: "OHLCV candle objects" },
+      { name: "levels", type: "number", description: "Number of price bins", optional: true },
     ]),
-    returns: "VWAP value",
-    tagsJson: JSON.stringify(["volume", "price", "benchmark", "institutional"]),
+    returns: "Array of price-volume buckets",
+    tagsJson: JSON.stringify(["volume", "profile", "participation"]),
+  },
+  {
+    id: randomUUID(),
+    name: "vwap_distance",
+    category: "technical",
+    description: "Measures how far current price is trading from VWAP to estimate institutional positioning.",
+    signature: "vwap_distance(candles: Array<{ high: number; low: number; close: number; volume: number }>): number",
+    codeExample: `const distance = vwap_distance(sessionCandles);
+if (distance > 1.5) console.log("Extended above VWAP");`,
+    parametersJson: JSON.stringify([
+      { name: "candles", type: "Array<Candle>", description: "Intraday or session candles" },
+    ]),
+    returns: "Percentage distance from VWAP",
+    tagsJson: JSON.stringify(["vwap", "institutional", "extension"]),
+  },
+  {
+    id: randomUUID(),
+    name: "on_balance_volume",
+    category: "technical",
+    description: "Checks whether volume confirms the move by cumulatively adding or subtracting volume on up and down closes.",
+    signature: "on_balance_volume(prices: number[], volumes: number[]): number",
+    codeExample: `const obv = on_balance_volume(prices, volumes);
+if (obv > previousObv) console.log("Volume confirms upside");`,
+    parametersJson: JSON.stringify([
+      { name: "prices", type: "number[]", description: "Close-price series" },
+      { name: "volumes", type: "number[]", description: "Volume series" },
+    ]),
+    returns: "Cumulative OBV value",
+    tagsJson: JSON.stringify(["obv", "volume", "confirmation"]),
+  },
+  {
+    id: randomUUID(),
+    name: "accumulation_distribution_line",
+    category: "technical",
+    description: "Estimates accumulation or distribution by combining close location value with volume.",
+    signature: "accumulation_distribution_line(highs: number[], lows: number[], closes: number[], volumes: number[]): number",
+    codeExample: `const adLine = accumulation_distribution_line(highs, lows, closes, volumes);
+if (adLine > 0) console.log("Accumulation bias");`,
+    parametersJson: JSON.stringify([
+      { name: "highs", type: "number[]", description: "High-price series" },
+      { name: "lows", type: "number[]", description: "Low-price series" },
+      { name: "closes", type: "number[]", description: "Close-price series" },
+      { name: "volumes", type: "number[]", description: "Volume series" },
+    ]),
+    returns: "Cumulative accumulation/distribution value",
+    tagsJson: JSON.stringify(["smart-money", "volume", "distribution"]),
+  },
+  {
+    id: randomUUID(),
+    name: "market_breadth",
+    category: "technical",
+    description: "Measures how many assets are participating in the move by comparing advancers and decliners.",
+    signature: "market_breadth(advancingAssets: number, decliningAssets: number): number",
+    codeExample: `const breadth = market_breadth(320, 180);
+if (breadth > 0.6) console.log("Broad participation");`,
+    parametersJson: JSON.stringify([
+      { name: "advancingAssets", type: "number", description: "Count of advancing assets" },
+      { name: "decliningAssets", type: "number", description: "Count of declining assets" },
+    ]),
+    returns: "Breadth ratio between 0 and 1",
+    tagsJson: JSON.stringify(["breadth", "participation", "internals"]),
+  },
+  {
+    id: randomUUID(),
+    name: "advance_decline_line",
+    category: "technical",
+    description: "Tracks cumulative net advances to evaluate internal market health over time.",
+    signature: "advance_decline_line(netAdvances: number[]): number",
+    codeExample: `const adLine = advance_decline_line([120, 85, -40, 140, 60]);
+console.log(adLine);`,
+    parametersJson: JSON.stringify([
+      { name: "netAdvances", type: "number[]", description: "Series of advances minus declines" },
+    ]),
+    returns: "Cumulative advance-decline line value",
+    tagsJson: JSON.stringify(["advance-decline", "breadth", "internals"]),
+  },
+  {
+    id: randomUUID(),
+    name: "new_high_new_low_ratio",
+    category: "technical",
+    description: "Measures leadership strength by comparing new highs against new lows.",
+    signature: "new_high_new_low_ratio(newHighs: number, newLows: number): number",
+    codeExample: `const ratio = new_high_new_low_ratio(75, 12);
+if (ratio > 3) console.log("Strong leadership");`,
+    parametersJson: JSON.stringify([
+      { name: "newHighs", type: "number", description: "Count of new highs" },
+      { name: "newLows", type: "number", description: "Count of new lows" },
+    ]),
+    returns: "New-high to new-low ratio",
+    tagsJson: JSON.stringify(["leadership", "highs-lows", "strength"]),
+  },
+  {
+    id: randomUUID(),
+    name: "correlation_to_market",
+    category: "technical",
+    description: "Measures how independent the asset is from the index by calculating correlation to the market.",
+    signature: "correlation_to_market(assetReturns: number[], benchmarkReturns: number[]): number",
+    codeExample: `const corr = correlation_to_market(assetReturns, benchmarkReturns);
+if (Math.abs(corr) < 0.3) console.log("Low market dependence");`,
+    parametersJson: JSON.stringify([
+      { name: "assetReturns", type: "number[]", description: "Asset return series" },
+      { name: "benchmarkReturns", type: "number[]", description: "Benchmark return series" },
+    ]),
+    returns: "Correlation coefficient between -1 and 1",
+    tagsJson: JSON.stringify(["correlation", "market", "independence"]),
+  },
+  {
+    id: randomUUID(),
+    name: "beta_stability",
+    category: "technical",
+    description: "Measures whether beta remains stable across rolling windows instead of swinging violently.",
+    signature: "beta_stability(assetReturns: number[], benchmarkReturns: number[], window?: number): number",
+    codeExample: `const stability = beta_stability(assetReturns, benchmarkReturns, 20);
+if (stability > 70) console.log("Stable beta profile");`,
+    parametersJson: JSON.stringify([
+      { name: "assetReturns", type: "number[]", description: "Asset return series" },
+      { name: "benchmarkReturns", type: "number[]", description: "Benchmark return series" },
+      { name: "window", type: "number", description: "Rolling beta window", optional: true },
+    ]),
+    returns: "Beta stability score",
+    tagsJson: JSON.stringify(["beta", "stability", "market-sensitivity"]),
+  },
+  {
+    id: randomUUID(),
+    name: "drawdown_depth",
+    category: "technical",
+    description: "Measures downside risk by finding the deepest peak-to-trough fall in the lookback period.",
+    signature: "drawdown_depth(prices: number[]): number",
+    codeExample: `const maxDrawdown = drawdown_depth(prices);
+if (maxDrawdown < -15) console.log("Risk profile deteriorating");`,
+    parametersJson: JSON.stringify([
+      { name: "prices", type: "number[]", description: "Close-price series" },
+    ]),
+    returns: "Maximum drawdown percentage",
+    tagsJson: JSON.stringify(["drawdown", "risk", "downside"]),
+  },
+  {
+    id: randomUUID(),
+    name: "hurst_exponent",
+    category: "technical",
+    description: "Estimates whether the asset behaves more like a trending series or a mean-reverting one.",
+    signature: "hurst_exponent(prices: number[]): number",
+    codeExample: `const hurst = hurst_exponent(prices);
+if (hurst > 0.5) console.log("Trending character");`,
+    parametersJson: JSON.stringify([
+      { name: "prices", type: "number[]", description: "Close-price series" },
+    ]),
+    returns: "Hurst exponent value",
+    tagsJson: JSON.stringify(["hurst", "trend", "mean-reversion"]),
+  },
+  {
+    id: randomUUID(),
+    name: "market_structure_analysis",
+    category: "technical",
+    description: "Evaluates higher highs, higher lows, lower highs, and lower lows to judge trend integrity.",
+    signature: "market_structure_analysis(highs: number[], lows: number[]): number",
+    codeExample: `const structure = market_structure_analysis(swingHighs, swingLows);
+if (structure > 70) console.log("Trend structure intact");`,
+    parametersJson: JSON.stringify([
+      { name: "highs", type: "number[]", description: "Swing highs or candle highs" },
+      { name: "lows", type: "number[]", description: "Swing lows or candle lows" },
+    ]),
+    returns: "Structure integrity score between 0 and 100",
+    tagsJson: JSON.stringify(["structure", "trend", "swing-analysis"]),
   },
 
   // Fundamental Analysis
