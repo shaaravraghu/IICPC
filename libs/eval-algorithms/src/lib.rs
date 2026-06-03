@@ -1,6 +1,6 @@
 use platform_types::{
     FundamentalMetricDefinition, FunctionParamDef, MarketCandle, PaperTradingResult, RankedAsset,
-    TechnicalMetricDefinition, TradeHorizon, TradeSimulationResult,
+    SentimentMetricDefinition, TechnicalMetricDefinition, TradeHorizon, TradeSimulationResult,
 };
 
 const PRICE_SERIES_PARAM: FunctionParamDef = FunctionParamDef {
@@ -154,6 +154,27 @@ const FUNDAMENTAL_PERIOD_PARAM: FunctionParamDef = FunctionParamDef {
     name: "period",
     type_name: "ReportingPeriod",
     description: "Fiscal quarter, trailing twelve months, or fiscal year used for comparison",
+    optional: true,
+};
+
+const SYMBOL_PARAM: FunctionParamDef = FunctionParamDef {
+    name: "symbol",
+    type_name: "&str",
+    description: "Asset or stock symbol being evaluated",
+    optional: false,
+};
+
+const EVIDENCE_PARAM: FunctionParamDef = FunctionParamDef {
+    name: "evidence",
+    type_name: "SentimentEvidence",
+    description: "Normalized evidence bundle for the sentiment method",
+    optional: false,
+};
+
+const LOOKBACK_DAYS_PARAM: FunctionParamDef = FunctionParamDef {
+    name: "lookback_days",
+    type_name: "usize",
+    description: "Number of days of evidence to evaluate",
     optional: true,
 };
 
@@ -679,6 +700,163 @@ pub fn fundamental_metric_catalog() -> Vec<FundamentalMetricDefinition> {
                     optional: false,
                 },
             ],
+        },
+    ]
+}
+
+pub fn sentiment_metric_catalog() -> Vec<SentimentMetricDefinition> {
+    let params = &[SYMBOL_PARAM, EVIDENCE_PARAM, LOOKBACK_DAYS_PARAM];
+
+    vec![
+        SentimentMetricDefinition {
+            key: "news_sentiment_analysis",
+            display_name: "News Sentiment Analysis",
+            measures: "Positive/negative tone in financial news articles",
+            description: "Scores financial news tone, article credibility, recency, and event severity for the shortlisted asset.",
+            signal_sources: &["financial news APIs", "issuer press releases", "wire services"],
+            signature: "news_sentiment_analysis(symbol: &str, evidence: SentimentEvidence, lookback_days?: usize) -> f64",
+            returns: "Segment score from -5 to +5",
+            params,
+        },
+        SentimentMetricDefinition {
+            key: "social_media_sentiment",
+            display_name: "Social Media Sentiment",
+            measures: "Public opinion from X, Reddit, LinkedIn, Facebook, etc.",
+            description: "Aggregates social posts by source credibility, reach, engagement, bot-likelihood, and stance.",
+            signal_sources: &["X", "Reddit", "LinkedIn", "Facebook"],
+            signature: "social_media_sentiment(symbol: &str, evidence: SentimentEvidence, lookback_days?: usize) -> f64",
+            returns: "Segment score from -5 to +5",
+            params,
+        },
+        SentimentMetricDefinition {
+            key: "search_trend_analysis",
+            display_name: "Search Trend Analysis",
+            measures: "Rising interest using search volume data",
+            description: "Scores abnormal search interest, query quality, and whether attention is positive, negative, or speculative.",
+            signal_sources: &["Google Trends", "search-volume providers", "keyword intelligence APIs"],
+            signature: "search_trend_analysis(symbol: &str, evidence: SentimentEvidence, lookback_days?: usize) -> f64",
+            returns: "Segment score from -5 to +5",
+            params,
+        },
+        SentimentMetricDefinition {
+            key: "options_market_sentiment",
+            display_name: "Options Market Sentiment",
+            measures: "Expectations implied by options traders",
+            description: "Evaluates put/call skew, implied volatility shifts, unusual activity, and directional premium demand.",
+            signal_sources: &["options chains", "put/call ratios", "implied volatility surfaces", "unusual options flow"],
+            signature: "options_market_sentiment(symbol: &str, evidence: SentimentEvidence, lookback_days?: usize) -> f64",
+            returns: "Segment score from -5 to +5",
+            params,
+        },
+        SentimentMetricDefinition {
+            key: "institutional_fund_flow_analysis",
+            display_name: "Institutional Fund Flow Analysis",
+            measures: "Where large investors are moving capital",
+            description: "Scores ETF flows, block trades, ownership changes, and institutional accumulation/distribution signals.",
+            signal_sources: &["fund flow feeds", "13F filings", "block trade data", "ETF flow data"],
+            signature: "institutional_fund_flow_analysis(symbol: &str, evidence: SentimentEvidence, lookback_days?: usize) -> f64",
+            returns: "Segment score from -5 to +5",
+            params,
+        },
+        SentimentMetricDefinition {
+            key: "analyst_rating_sentiment",
+            display_name: "Analyst Rating Sentiment",
+            measures: "Upgrades, downgrades, and target-price revisions",
+            description: "Scores analyst action direction, magnitude, analyst quality, consensus drift, and target-price changes.",
+            signal_sources: &["analyst ratings", "target-price revisions", "broker research summaries"],
+            signature: "analyst_rating_sentiment(symbol: &str, evidence: SentimentEvidence, lookback_days?: usize) -> f64",
+            returns: "Segment score from -5 to +5",
+            params,
+        },
+        SentimentMetricDefinition {
+            key: "earnings_call_sentiment",
+            display_name: "Earnings Call Sentiment",
+            measures: "Management confidence and tone during earnings calls",
+            description: "Scores management tone, uncertainty, forward-looking confidence, Q&A pressure, and guidance language.",
+            signal_sources: &["earnings call transcripts", "prepared remarks", "Q&A transcripts", "guidance updates"],
+            signature: "earnings_call_sentiment(symbol: &str, evidence: SentimentEvidence, lookback_days?: usize) -> f64",
+            returns: "Segment score from -5 to +5",
+            params,
+        },
+        SentimentMetricDefinition {
+            key: "insider_trading_analysis",
+            display_name: "Insider Trading Analysis",
+            measures: "Actions of executives and directors",
+            description: "Scores insider buying/selling direction, size, role seniority, timing, and recurrence.",
+            signal_sources: &["Form 4 filings", "insider transaction feeds", "director/officer ownership reports"],
+            signature: "insider_trading_analysis(symbol: &str, evidence: SentimentEvidence, lookback_days?: usize) -> f64",
+            returns: "Segment score from -5 to +5",
+            params,
+        },
+        SentimentMetricDefinition {
+            key: "technical_sentiment_indicators",
+            display_name: "Technical Sentiment Indicators",
+            measures: "Market psychology reflected in price behavior",
+            description: "Converts crowd psychology from technical evidence such as breadth, volatility, squeezes, capitulation, and trend persistence.",
+            signal_sources: &["technical metric outputs", "market breadth", "volatility metrics", "price action"],
+            signature: "technical_sentiment_indicators(symbol: &str, evidence: SentimentEvidence, lookback_days?: usize) -> f64",
+            returns: "Segment score from -5 to +5",
+            params,
+        },
+        SentimentMetricDefinition {
+            key: "consumer_review_sentiment",
+            display_name: "Consumer Review Sentiment",
+            measures: "Customer opinions about products/services",
+            description: "Scores product review tone, rating velocity, complaint themes, and customer satisfaction shifts.",
+            signal_sources: &["app store reviews", "e-commerce reviews", "product forums", "customer survey sources"],
+            signature: "consumer_review_sentiment(symbol: &str, evidence: SentimentEvidence, lookback_days?: usize) -> f64",
+            returns: "Segment score from -5 to +5",
+            params,
+        },
+        SentimentMetricDefinition {
+            key: "supply_chain_sentiment",
+            display_name: "Supply Chain Sentiment",
+            measures: "Signals from suppliers, logistics, and manufacturing",
+            description: "Scores delivery delays, supplier commentary, inventory stress, logistics signals, and manufacturing momentum.",
+            signal_sources: &["supplier news", "shipping data", "inventory data", "manufacturing reports"],
+            signature: "supply_chain_sentiment(symbol: &str, evidence: SentimentEvidence, lookback_days?: usize) -> f64",
+            returns: "Segment score from -5 to +5",
+            params,
+        },
+        SentimentMetricDefinition {
+            key: "influencer_community_forum_analysis",
+            display_name: "Influencer, Community & Forum Analysis",
+            measures: "Deep discussions from niche communities",
+            description: "Scores expert community conviction, discussion depth, source reputation, and narrative formation.",
+            signal_sources: &["specialist forums", "Substack", "Discord communities", "influencer commentary"],
+            signature: "influencer_community_forum_analysis(symbol: &str, evidence: SentimentEvidence, lookback_days?: usize) -> f64",
+            returns: "Segment score from -5 to +5",
+            params,
+        },
+        SentimentMetricDefinition {
+            key: "macroeconomic_sentiment_analysis",
+            display_name: "Macroeconomic Sentiment Analysis",
+            measures: "Sentiment implied by economic indicators",
+            description: "Scores macro backdrop friendliness using rates, inflation, growth, employment, policy, and sector sensitivity.",
+            signal_sources: &["economic releases", "central bank statements", "rates data", "inflation data"],
+            signature: "macroeconomic_sentiment_analysis(symbol: &str, evidence: SentimentEvidence, lookback_days?: usize) -> f64",
+            returns: "Segment score from -5 to +5",
+            params,
+        },
+        SentimentMetricDefinition {
+            key: "alternative_data_sentiment",
+            display_name: "Alternative Data Sentiment",
+            measures: "Real-world behavioral signals",
+            description: "Scores non-traditional behavior signals such as foot traffic, app usage, web traffic, card spend, and satellite activity.",
+            signal_sources: &["app usage", "web traffic", "card spend", "geolocation", "satellite or sensor data"],
+            signature: "alternative_data_sentiment(symbol: &str, evidence: SentimentEvidence, lookback_days?: usize) -> f64",
+            returns: "Segment score from -5 to +5",
+            params,
+        },
+        SentimentMetricDefinition {
+            key: "prediction_market_analysis",
+            display_name: "Prediction Market Analysis",
+            measures: "What people are willing to bet on happening",
+            description: "Scores market-implied probability shifts from prediction, event, or betting markets tied to company outcomes.",
+            signal_sources: &["prediction markets", "event markets", "betting odds", "probability markets"],
+            signature: "prediction_market_analysis(symbol: &str, evidence: SentimentEvidence, lookback_days?: usize) -> f64",
+            returns: "Segment score from -5 to +5",
+            params,
         },
     ]
 }
