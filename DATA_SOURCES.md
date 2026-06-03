@@ -74,3 +74,31 @@ sys.market_data.live
 ```
 
 This keeps Stage 1 fast and stream-driven while Stage 2 stays reliable and statement-driven.
+
+## Sentiment Analysis Data
+
+Sentiment analysis should ingest normalized evidence bundles after fundamental validation.
+
+Primary intake point:
+
+| Source | Interface | Used For |
+|---|---|---|
+| Sentiment evidence store | `sentiment.evidence_snapshots` table or `/sentiment/evidence/{symbol}` API | News, social, search, options, fund flow, analyst, call transcript, insider, macro, alternative, and prediction-market evidence |
+
+Best data shape:
+
+| Data Type | Fields |
+|---|---|
+| Evidence snapshot | `symbol`, `method`, `source`, `observed_at`, `lookback_days`, `raw_signal`, `confidence`, `recency_weight`, `source_reliability`, `explanation` |
+| Method score | `symbol`, `method`, `score`, `confidence`, `weighted_score`, `rationale` |
+
+Suggested flow:
+
+```text
+stage2.fundamental.out
+  -> sentiment-agents
+  -> sentiment.evidence_snapshots lookup
+  -> stage3.sentiment.out
+```
+
+This keeps Stage 3 expensive and evidence-driven instead of mixing qualitative analysis into the faster technical and fundamental filters.

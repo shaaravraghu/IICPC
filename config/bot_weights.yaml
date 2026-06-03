@@ -47,9 +47,14 @@ fundamental:
     interest_coverage_ratio: 0.25
     current_ratio: 0.15
 sentiment:
-  news_reaction: 35
-  market_breadth: 30
-  volatility_regime: 35
+  news_sentiment_analysis: 20
+  options_market_sentiment: 15
+  institutional_fund_flow_analysis: 15
+  analyst_rating_sentiment: 10
+  earnings_call_sentiment: 15
+  technical_sentiment_indicators: 10
+  alternative_data_sentiment: 10
+  prediction_market_analysis: 5
 leaderboard:
   signal_score: 40
   execution_score: 35

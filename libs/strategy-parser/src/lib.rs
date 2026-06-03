@@ -116,19 +116,44 @@ pub fn starter_strategy(owner: impl Into<String>) -> StrategyManifest {
         }],
         sentiment_dimensions: vec![
             SentimentDimension {
-                name: "news_reaction".to_string(),
-                weight_pct: 35.0,
-                call: FunctionCall::new("news_sentiment_score"),
+                name: "news_sentiment".to_string(),
+                weight_pct: 20.0,
+                call: FunctionCall::new("news_sentiment_analysis"),
             },
             SentimentDimension {
-                name: "market_breadth".to_string(),
-                weight_pct: 30.0,
-                call: FunctionCall::new("breadth_sentiment"),
+                name: "options_sentiment".to_string(),
+                weight_pct: 15.0,
+                call: FunctionCall::new("options_market_sentiment"),
             },
             SentimentDimension {
-                name: "volatility_regime".to_string(),
-                weight_pct: 35.0,
-                call: FunctionCall::new("fear_greed_index"),
+                name: "institutional_flow".to_string(),
+                weight_pct: 15.0,
+                call: FunctionCall::new("institutional_fund_flow_analysis"),
+            },
+            SentimentDimension {
+                name: "analyst_sentiment".to_string(),
+                weight_pct: 10.0,
+                call: FunctionCall::new("analyst_rating_sentiment"),
+            },
+            SentimentDimension {
+                name: "earnings_call_tone".to_string(),
+                weight_pct: 15.0,
+                call: FunctionCall::new("earnings_call_sentiment"),
+            },
+            SentimentDimension {
+                name: "technical_psychology".to_string(),
+                weight_pct: 10.0,
+                call: FunctionCall::new("technical_sentiment_indicators"),
+            },
+            SentimentDimension {
+                name: "alternative_data".to_string(),
+                weight_pct: 10.0,
+                call: FunctionCall::new("alternative_data_sentiment"),
+            },
+            SentimentDimension {
+                name: "prediction_markets".to_string(),
+                weight_pct: 5.0,
+                call: FunctionCall::new("prediction_market_analysis"),
             },
         ],
     }
@@ -147,7 +172,7 @@ mod tests {
     #[test]
     fn rejects_bad_sentiment_weights() {
         let mut strategy = starter_strategy("team-alpha");
-        strategy.sentiment_dimensions[0].weight_pct = 20.0;
+        strategy.sentiment_dimensions[0].weight_pct = 25.0;
         assert_eq!(validate_strategy(&strategy), Err(StrategyError::InvalidSentimentWeight));
     }
 }
