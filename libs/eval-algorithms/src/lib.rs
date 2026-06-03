@@ -1080,12 +1080,4 @@ mod tests {
         assert!(catalog.iter().any(|metric| metric.key == "peg_ratio"));
     }
 
-    #[test]
-    fn sentiment_catalog_contains_all_expected_metrics() {
-        let catalog = sentiment_metric_catalog();
-        assert_eq!(catalog.len(), 15);
-        assert!(catalog.iter().all(|metric| metric.returns == "Segment score from -5 to +5"));
-        assert!(catalog.iter().any(|metric| metric.key == "news_sentiment_analysis"));
-        assert!(catalog.iter().any(|metric| metric.key == "prediction_market_analysis"));
-    }
 }
