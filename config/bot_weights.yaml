@@ -1,16 +1,22 @@
 technical:
   momentum-breakout:
-    rsi: 0.45
-    vwap: 0.35
-    sma: 0.20
+    trend_strength_adx: 0.35
+    momentum_rate_of_change: 0.35
+    vwap_distance: 0.30
   trend-confirmation:
-    sma: 0.50
-    rsi: 0.25
-    vwap: 0.25
+    market_structure_analysis: 0.45
+    relative_strength_vs_benchmark: 0.35
+    macd_histogram_slope: 0.20
 fundamental:
   quality-compounders:
-    roic: 0.55
-    free_cash_flow_margin: 0.45
+    return_on_invested_capital: 0.40
+    free_cash_flow_margin: 0.30
+    gross_margin: 0.30
+  reliability-check:
+    earnings_quality_ratio: 0.35
+    debt_to_ebitda: 0.25
+    interest_coverage_ratio: 0.25
+    current_ratio: 0.15
 sentiment:
   news_reaction: 35
   market_breadth: 30
