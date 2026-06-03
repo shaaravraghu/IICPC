@@ -84,6 +84,20 @@ pub struct TechnicalMetricDefinition {
     pub params: &'static [FunctionParamDef],
 }
 
+<<<<<<< HEAD
+=======
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct FundamentalMetricDefinition {
+    pub key: &'static str,
+    pub display_name: &'static str,
+    pub validates: &'static str,
+    pub description: &'static str,
+    pub signature: &'static str,
+    pub returns: &'static str,
+    pub params: &'static [FunctionParamDef],
+}
+
+>>>>>>> f181a9b (Fundamental Analysis Metrics Functions Re-defining)
 #[derive(Clone, Debug, PartialEq)]
 pub struct MetricGroup {
     pub id: String,

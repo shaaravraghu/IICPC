@@ -1,6 +1,11 @@
 use platform_types::{
+<<<<<<< HEAD
     FunctionParamDef, MarketCandle, PaperTradingResult, RankedAsset, TechnicalMetricDefinition,
     TradeHorizon, TradeSimulationResult,
+=======
+    FundamentalMetricDefinition, FunctionParamDef, MarketCandle, PaperTradingResult, RankedAsset,
+    TechnicalMetricDefinition, TradeHorizon, TradeSimulationResult,
+>>>>>>> f181a9b (Fundamental Analysis Metrics Functions Re-defining)
 };
 
 const PRICE_SERIES_PARAM: FunctionParamDef = FunctionParamDef {
@@ -94,6 +99,72 @@ const NEW_LOWS_PARAM: FunctionParamDef = FunctionParamDef {
     optional: false,
 };
 
+<<<<<<< HEAD
+=======
+const REVENUE_PARAM: FunctionParamDef = FunctionParamDef {
+    name: "revenue",
+    type_name: "f64",
+    description: "Current period revenue",
+    optional: false,
+};
+
+const PRIOR_REVENUE_PARAM: FunctionParamDef = FunctionParamDef {
+    name: "prior_revenue",
+    type_name: "f64",
+    description: "Comparable prior period revenue",
+    optional: false,
+};
+
+const GROSS_PROFIT_PARAM: FunctionParamDef = FunctionParamDef {
+    name: "gross_profit",
+    type_name: "f64",
+    description: "Revenue minus cost of goods sold",
+    optional: false,
+};
+
+const OPERATING_INCOME_PARAM: FunctionParamDef = FunctionParamDef {
+    name: "operating_income",
+    type_name: "f64",
+    description: "Income from core operations",
+    optional: false,
+};
+
+const FREE_CASH_FLOW_PARAM: FunctionParamDef = FunctionParamDef {
+    name: "free_cash_flow",
+    type_name: "f64",
+    description: "Operating cash flow minus capital expenditures",
+    optional: false,
+};
+
+const NET_INCOME_PARAM: FunctionParamDef = FunctionParamDef {
+    name: "net_income",
+    type_name: "f64",
+    description: "Reported net income",
+    optional: false,
+};
+
+const TOTAL_DEBT_PARAM: FunctionParamDef = FunctionParamDef {
+    name: "total_debt",
+    type_name: "f64",
+    description: "Short-term plus long-term debt",
+    optional: false,
+};
+
+const EBITDA_PARAM: FunctionParamDef = FunctionParamDef {
+    name: "ebitda",
+    type_name: "f64",
+    description: "Earnings before interest, taxes, depreciation, and amortization",
+    optional: false,
+};
+
+const FUNDAMENTAL_PERIOD_PARAM: FunctionParamDef = FunctionParamDef {
+    name: "period",
+    type_name: "ReportingPeriod",
+    description: "Fiscal quarter, trailing twelve months, or fiscal year used for comparison",
+    optional: true,
+};
+
+>>>>>>> f181a9b (Fundamental Analysis Metrics Functions Re-defining)
 pub fn technical_metric_catalog() -> Vec<TechnicalMetricDefinition> {
     vec![
         TechnicalMetricDefinition {
@@ -291,6 +362,337 @@ pub fn technical_metric_catalog() -> Vec<TechnicalMetricDefinition> {
         },
     ]
 }
+<<<<<<< HEAD
+=======
+
+pub fn fundamental_metric_catalog() -> Vec<FundamentalMetricDefinition> {
+    vec![
+        FundamentalMetricDefinition {
+            key: "revenue_growth_rate",
+            display_name: "Revenue Growth Rate",
+            validates: "Demand growth",
+            description: "Compares current revenue to a prior comparable period to validate whether demand is expanding.",
+            signature: "revenue_growth_rate(revenue: f64, prior_revenue: f64, period?: ReportingPeriod) -> f64",
+            returns: "Revenue growth percentage",
+            params: &[REVENUE_PARAM, PRIOR_REVENUE_PARAM, FUNDAMENTAL_PERIOD_PARAM],
+        },
+        FundamentalMetricDefinition {
+            key: "organic_revenue_growth",
+            display_name: "Organic Revenue Growth",
+            validates: "True growth vs acquisitions",
+            description: "Adjusts reported revenue growth for acquired revenue, divestitures, and currency effects to isolate underlying growth.",
+            signature: "organic_revenue_growth(revenue: f64, prior_revenue: f64, acquired_revenue?: f64, fx_impact?: f64) -> f64",
+            returns: "Organic revenue growth percentage",
+            params: &[REVENUE_PARAM, PRIOR_REVENUE_PARAM],
+        },
+        FundamentalMetricDefinition {
+            key: "gross_margin",
+            display_name: "Gross Margin",
+            validates: "Pricing power and moat",
+            description: "Measures how much revenue remains after direct production costs, revealing pricing power and business quality.",
+            signature: "gross_margin(gross_profit: f64, revenue: f64) -> f64",
+            returns: "Gross margin percentage",
+            params: &[GROSS_PROFIT_PARAM, REVENUE_PARAM],
+        },
+        FundamentalMetricDefinition {
+            key: "operating_margin",
+            display_name: "Operating Margin",
+            validates: "Operational efficiency",
+            description: "Shows how efficiently the company turns revenue into operating income before financing and tax effects.",
+            signature: "operating_margin(operating_income: f64, revenue: f64) -> f64",
+            returns: "Operating margin percentage",
+            params: &[OPERATING_INCOME_PARAM, REVENUE_PARAM],
+        },
+        FundamentalMetricDefinition {
+            key: "free_cash_flow_margin",
+            display_name: "Free Cash Flow Margin",
+            validates: "Ability to convert revenue into cash",
+            description: "Measures how much revenue becomes free cash flow after operating and capital requirements.",
+            signature: "free_cash_flow_margin(free_cash_flow: f64, revenue: f64) -> f64",
+            returns: "Free cash flow margin percentage",
+            params: &[FREE_CASH_FLOW_PARAM, REVENUE_PARAM],
+        },
+        FundamentalMetricDefinition {
+            key: "return_on_invested_capital",
+            display_name: "Return on Invested Capital (ROIC)",
+            validates: "Capital efficiency",
+            description: "Measures how efficiently invested capital is converted into after-tax operating profit.",
+            signature: "return_on_invested_capital(nopat: f64, invested_capital: f64) -> f64",
+            returns: "ROIC percentage",
+            params: &[
+                FunctionParamDef {
+                    name: "nopat",
+                    type_name: "f64",
+                    description: "Net operating profit after tax",
+                    optional: false,
+                },
+                FunctionParamDef {
+                    name: "invested_capital",
+                    type_name: "f64",
+                    description: "Debt plus equity capital invested in operations",
+                    optional: false,
+                },
+            ],
+        },
+        FundamentalMetricDefinition {
+            key: "return_on_equity",
+            display_name: "Return on Equity (ROE)",
+            validates: "Shareholder value creation",
+            description: "Measures how effectively shareholder equity is used to generate net income.",
+            signature: "return_on_equity(net_income: f64, shareholder_equity: f64) -> f64",
+            returns: "ROE percentage",
+            params: &[
+                NET_INCOME_PARAM,
+                FunctionParamDef {
+                    name: "shareholder_equity",
+                    type_name: "f64",
+                    description: "Book value of common shareholder equity",
+                    optional: false,
+                },
+            ],
+        },
+        FundamentalMetricDefinition {
+            key: "return_on_assets",
+            display_name: "Return on Assets (ROA)",
+            validates: "Asset productivity",
+            description: "Measures how effectively total assets are used to produce earnings.",
+            signature: "return_on_assets(net_income: f64, total_assets: f64) -> f64",
+            returns: "ROA percentage",
+            params: &[
+                NET_INCOME_PARAM,
+                FunctionParamDef {
+                    name: "total_assets",
+                    type_name: "f64",
+                    description: "Total assets from the balance sheet",
+                    optional: false,
+                },
+            ],
+        },
+        FundamentalMetricDefinition {
+            key: "free_cash_flow_growth",
+            display_name: "Free Cash Flow Growth",
+            validates: "Sustainability of business expansion",
+            description: "Compares current free cash flow to a prior period to validate whether expansion is translating into cash.",
+            signature: "free_cash_flow_growth(free_cash_flow: f64, prior_free_cash_flow: f64, period?: ReportingPeriod) -> f64",
+            returns: "Free cash flow growth percentage",
+            params: &[
+                FREE_CASH_FLOW_PARAM,
+                FunctionParamDef {
+                    name: "prior_free_cash_flow",
+                    type_name: "f64",
+                    description: "Comparable prior period free cash flow",
+                    optional: false,
+                },
+                FUNDAMENTAL_PERIOD_PARAM,
+            ],
+        },
+        FundamentalMetricDefinition {
+            key: "earnings_quality_ratio",
+            display_name: "Earnings Quality Ratio",
+            validates: "Quality of reported earnings",
+            description: "Compares operating cash flow or free cash flow against net income to identify low-quality accrual-driven earnings.",
+            signature: "earnings_quality_ratio(operating_cash_flow: f64, net_income: f64) -> f64",
+            returns: "Cash earnings quality ratio",
+            params: &[
+                FunctionParamDef {
+                    name: "operating_cash_flow",
+                    type_name: "f64",
+                    description: "Cash generated from operations",
+                    optional: false,
+                },
+                NET_INCOME_PARAM,
+            ],
+        },
+        FundamentalMetricDefinition {
+            key: "debt_to_ebitda",
+            display_name: "Debt-to-EBITDA",
+            validates: "Leverage risk",
+            description: "Measures debt load relative to operating earnings capacity.",
+            signature: "debt_to_ebitda(total_debt: f64, ebitda: f64) -> f64",
+            returns: "Debt-to-EBITDA multiple",
+            params: &[TOTAL_DEBT_PARAM, EBITDA_PARAM],
+        },
+        FundamentalMetricDefinition {
+            key: "interest_coverage_ratio",
+            display_name: "Interest Coverage Ratio",
+            validates: "Debt servicing ability",
+            description: "Measures whether operating income can comfortably cover interest expense.",
+            signature: "interest_coverage_ratio(ebit: f64, interest_expense: f64) -> f64",
+            returns: "Interest coverage multiple",
+            params: &[
+                FunctionParamDef {
+                    name: "ebit",
+                    type_name: "f64",
+                    description: "Earnings before interest and taxes",
+                    optional: false,
+                },
+                FunctionParamDef {
+                    name: "interest_expense",
+                    type_name: "f64",
+                    description: "Interest expense for the same period",
+                    optional: false,
+                },
+            ],
+        },
+        FundamentalMetricDefinition {
+            key: "current_ratio",
+            display_name: "Current Ratio",
+            validates: "Short-term financial health",
+            description: "Compares current assets against current liabilities to validate near-term liquidity.",
+            signature: "current_ratio(current_assets: f64, current_liabilities: f64) -> f64",
+            returns: "Current ratio multiple",
+            params: &[
+                FunctionParamDef {
+                    name: "current_assets",
+                    type_name: "f64",
+                    description: "Assets expected to convert to cash within one year",
+                    optional: false,
+                },
+                FunctionParamDef {
+                    name: "current_liabilities",
+                    type_name: "f64",
+                    description: "Obligations due within one year",
+                    optional: false,
+                },
+            ],
+        },
+        FundamentalMetricDefinition {
+            key: "share_dilution_rate",
+            display_name: "Share Dilution Rate",
+            validates: "Management alignment",
+            description: "Measures whether share count is increasing in a way that dilutes existing holders.",
+            signature: "share_dilution_rate(shares_outstanding: f64, prior_shares_outstanding: f64) -> f64",
+            returns: "Share dilution percentage",
+            params: &[
+                FunctionParamDef {
+                    name: "shares_outstanding",
+                    type_name: "f64",
+                    description: "Current diluted shares outstanding",
+                    optional: false,
+                },
+                FunctionParamDef {
+                    name: "prior_shares_outstanding",
+                    type_name: "f64",
+                    description: "Prior comparable diluted shares outstanding",
+                    optional: false,
+                },
+            ],
+        },
+        FundamentalMetricDefinition {
+            key: "insider_ownership_trend",
+            display_name: "Insider Ownership Trend",
+            validates: "Management conviction",
+            description: "Tracks whether insider ownership is increasing or decreasing over time.",
+            signature: "insider_ownership_trend(insider_ownership_pct: f64, prior_insider_ownership_pct: f64) -> f64",
+            returns: "Change in insider ownership percentage points",
+            params: &[
+                FunctionParamDef {
+                    name: "insider_ownership_pct",
+                    type_name: "f64",
+                    description: "Current insider ownership percentage",
+                    optional: false,
+                },
+                FunctionParamDef {
+                    name: "prior_insider_ownership_pct",
+                    type_name: "f64",
+                    description: "Prior comparable insider ownership percentage",
+                    optional: false,
+                },
+            ],
+        },
+        FundamentalMetricDefinition {
+            key: "customer_concentration",
+            display_name: "Customer Concentration",
+            validates: "Revenue risk",
+            description: "Measures the percentage of revenue dependent on the largest customers.",
+            signature: "customer_concentration(top_customer_revenue: f64, revenue: f64) -> f64",
+            returns: "Customer concentration percentage",
+            params: &[
+                FunctionParamDef {
+                    name: "top_customer_revenue",
+                    type_name: "f64",
+                    description: "Revenue from the largest customer or customer group",
+                    optional: false,
+                },
+                REVENUE_PARAM,
+            ],
+        },
+        FundamentalMetricDefinition {
+            key: "research_and_development_intensity",
+            display_name: "R&D Intensity",
+            validates: "Future innovation pipeline",
+            description: "Measures research and development spend relative to revenue.",
+            signature: "research_and_development_intensity(r_and_d_expense: f64, revenue: f64) -> f64",
+            returns: "R&D intensity percentage",
+            params: &[
+                FunctionParamDef {
+                    name: "r_and_d_expense",
+                    type_name: "f64",
+                    description: "Research and development expense",
+                    optional: false,
+                },
+                REVENUE_PARAM,
+            ],
+        },
+        FundamentalMetricDefinition {
+            key: "revenue_per_employee",
+            display_name: "Revenue per Employee",
+            validates: "Organizational efficiency",
+            description: "Measures how efficiently the organization converts headcount into revenue.",
+            signature: "revenue_per_employee(revenue: f64, employee_count: f64) -> f64",
+            returns: "Revenue per employee",
+            params: &[
+                REVENUE_PARAM,
+                FunctionParamDef {
+                    name: "employee_count",
+                    type_name: "f64",
+                    description: "Current employee count",
+                    optional: false,
+                },
+            ],
+        },
+        FundamentalMetricDefinition {
+            key: "enterprise_value_to_free_cash_flow",
+            display_name: "EV/FCF Ratio",
+            validates: "Cash-based valuation",
+            description: "Compares enterprise value to free cash flow to validate whether valuation is supported by cash generation.",
+            signature: "enterprise_value_to_free_cash_flow(enterprise_value: f64, free_cash_flow: f64) -> f64",
+            returns: "EV/FCF multiple",
+            params: &[
+                FunctionParamDef {
+                    name: "enterprise_value",
+                    type_name: "f64",
+                    description: "Market capitalization plus debt minus cash",
+                    optional: false,
+                },
+                FREE_CASH_FLOW_PARAM,
+            ],
+        },
+        FundamentalMetricDefinition {
+            key: "peg_ratio",
+            display_name: "PEG Ratio",
+            validates: "Whether growth justifies valuation",
+            description: "Compares price-to-earnings multiple against earnings growth to judge growth-adjusted valuation.",
+            signature: "peg_ratio(price_to_earnings: f64, earnings_growth_rate: f64) -> f64",
+            returns: "PEG ratio",
+            params: &[
+                FunctionParamDef {
+                    name: "price_to_earnings",
+                    type_name: "f64",
+                    description: "Current P/E multiple",
+                    optional: false,
+                },
+                FunctionParamDef {
+                    name: "earnings_growth_rate",
+                    type_name: "f64",
+                    description: "Expected or realized earnings growth percentage",
+                    optional: false,
+                },
+            ],
+        },
+    ]
+}
+>>>>>>> f181a9b (Fundamental Analysis Metrics Functions Re-defining)
 
 pub fn clamp(value: f64, min: f64, max: f64) -> f64 {
     value.max(min).min(max)
@@ -494,6 +896,11 @@ mod tests {
         let score = composite_score(90.0, 80.0, 70.0);
         assert!((score - 81.5).abs() < 0.0001);
     }
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+=======
+>>>>>>> f181a9b (Fundamental Analysis Metrics Functions Re-defining)
 
     #[test]
     fn technical_catalog_contains_all_expected_metrics() {
@@ -502,4 +909,16 @@ mod tests {
         assert!(catalog.iter().any(|metric| metric.key == "trend_strength_adx"));
         assert!(catalog.iter().any(|metric| metric.key == "market_structure_analysis"));
     }
+<<<<<<< HEAD
+=======
+
+    #[test]
+    fn fundamental_catalog_contains_all_expected_metrics() {
+        let catalog = fundamental_metric_catalog();
+        assert_eq!(catalog.len(), 20);
+        assert!(catalog.iter().any(|metric| metric.key == "revenue_growth_rate"));
+        assert!(catalog.iter().any(|metric| metric.key == "peg_ratio"));
+    }
+>>>>>>> 6221676 (Fundamental Analysis Metrics Functions Re-defining)
+>>>>>>> f181a9b (Fundamental Analysis Metrics Functions Re-defining)
 }
