@@ -885,8 +885,6 @@ mod tests {
         let score = composite_score(90.0, 80.0, 70.0);
         assert!((score - 81.5).abs() < 0.0001);
     }
-<<<<<<< HEAD
-=======
 
     #[test]
     fn technical_catalog_contains_all_expected_metrics() {
@@ -903,5 +901,5 @@ mod tests {
         assert!(catalog.iter().any(|metric| metric.key == "revenue_growth_rate"));
         assert!(catalog.iter().any(|metric| metric.key == "peg_ratio"));
     }
->>>>>>> 6221676 (Fundamental Analysis Metrics Functions Re-defining)
+
 }
