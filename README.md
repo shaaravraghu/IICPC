@@ -69,6 +69,9 @@ The Rust workspace is the backend foundation for the signal platform.
 | [libs/eval-algorithms/src/lib.rs](/Users/shaarav/Documents/GitHub_Projects/IICPC/libs/eval-algorithms/src/lib.rs) | Predefined metrics and score formulas |
 | [libs/strategy-parser/src/lib.rs](/Users/shaarav/Documents/GitHub_Projects/IICPC/libs/strategy-parser/src/lib.rs) | Strategy validation and starter strategy definition |
 | [libs/kafka-utils/src/lib.rs](/Users/shaarav/Documents/GitHub_Projects/IICPC/libs/kafka-utils/src/lib.rs) | Event transport abstraction used between stages |
+| [TECHNICAL_METRICS.md](/Users/shaarav/Documents/GitHub_Projects/IICPC/TECHNICAL_METRICS.md) | Stage 1 technical metric definitions |
+| [FUNDAMENTAL_METRICS.md](/Users/shaarav/Documents/GitHub_Projects/IICPC/FUNDAMENTAL_METRICS.md) | Stage 2 fundamental validation metric definitions |
+| [DATA_SOURCES.md](/Users/shaarav/Documents/GitHub_Projects/IICPC/DATA_SOURCES.md) | Data intake boundaries for technical and fundamental analysis |
 | [config/bot_weights.yaml](/Users/shaarav/Documents/GitHub_Projects/IICPC/config/bot_weights.yaml) | Group weights and leaderboard scoring weights |
 | [config/kafka_topics.yaml](/Users/shaarav/Documents/GitHub_Projects/IICPC/config/kafka_topics.yaml) | Topic topology for the distributed pipeline |
 | [infrastructure/scripts/deploy.sh](/Users/shaarav/Documents/GitHub_Projects/IICPC/infrastructure/scripts/deploy.sh) | Deployment entrypoint for Kubernetes scaffold |

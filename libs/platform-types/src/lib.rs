@@ -65,6 +65,36 @@ impl FunctionCall {
     }
 }
 
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct FunctionParamDef {
+    pub name: &'static str,
+    pub type_name: &'static str,
+    pub description: &'static str,
+    pub optional: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct TechnicalMetricDefinition {
+    pub key: &'static str,
+    pub display_name: &'static str,
+    pub measures: &'static str,
+    pub description: &'static str,
+    pub signature: &'static str,
+    pub returns: &'static str,
+    pub params: &'static [FunctionParamDef],
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct FundamentalMetricDefinition {
+    pub key: &'static str,
+    pub display_name: &'static str,
+    pub validates: &'static str,
+    pub description: &'static str,
+    pub signature: &'static str,
+    pub returns: &'static str,
+    pub params: &'static [FunctionParamDef],
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct MetricGroup {
     pub id: String,
