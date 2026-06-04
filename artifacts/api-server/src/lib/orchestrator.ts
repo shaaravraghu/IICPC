@@ -22,6 +22,7 @@ import {
   sentimentBot,
   type SentimentBotResult,
 } from "./bots/sentimentBot";
+import { simulateExecution } from "./executionSimulator";
 
 export const DEFAULT_ASSETS = [
   "AAPL",
@@ -272,10 +273,26 @@ async function sentimentLayer(testRunId: string, assets: AssetCandidate[]): Prom
 }
 
 async function executionLayer(testRunId: string, assets: AssetCandidate[]): Promise<AssetCandidate[]> {
-  const scored = assets.map((asset) => ({
-    ...asset,
-    executionScore: scoreSymbol(asset.symbol, 53),
-  }));
+  const simulations = await Promise.all(
+    assets.map((asset) =>
+      simulateExecution({
+        assetId: asset.assetId,
+        symbol: asset.symbol,
+        sentimentScore: asset.sentimentScore,
+      })
+    )
+  );
+  await insertExecutionEvents(testRunId, simulations);
+
+  const scored = assets.map((asset) => {
+    const simulation = simulations.find((result) => result.assetId === asset.assetId);
+    return {
+      ...asset,
+      executionScore: simulation?.executionScore ?? 0,
+      executionMetrics: simulation?.metrics,
+      executionTrades: simulation?.trades ?? [],
+    };
+  });
 
   const ranked = scored
     .map((asset) => ({
@@ -302,6 +319,32 @@ async function executionLayer(testRunId: string, assets: AssetCandidate[]): Prom
   });
 
   return ranked;
+}
+
+async function insertExecutionEvents(
+  testRunId: string,
+  simulations: Array<Awaited<ReturnType<typeof simulateExecution>>>
+): Promise<void> {
+  if (simulations.length === 0) return;
+
+  await db.insert(botEventsTable).values(
+    simulations.map((simulation, index) => ({
+      id: randomUUID(),
+      testRunId,
+      botId: `execution-sim-${index + 1}`,
+      assetId: simulation.assetId,
+      symbol: simulation.symbol,
+      metricGroupId: "execution-historical-simulation",
+      layer: "execution",
+      status: "completed",
+      resultJson: {
+        score: simulation.executionScore,
+        metrics: simulation.metrics,
+        trades: simulation.trades,
+        evaluatedAt: new Date().toISOString(),
+      },
+    }))
+  );
 }
 
 async function insertBotResults(testRunId: string, botId: string, results: LayerBotResult[]): Promise<void> {
@@ -401,11 +444,6 @@ async function failRun(testRunId: string, err: unknown): Promise<void> {
     .update(testRunsTable)
     .set({ status: "failed", currentStage: `failed: ${message}`, completedAt: new Date() })
     .where(eq(testRunsTable.id, testRunId));
-}
-
-function scoreSymbol(symbol: string, salt: number): number {
-  const hash = Array.from(symbol).reduce((sum, char, index) => sum + char.charCodeAt(0) * (index + salt), 0);
-  return Math.round(30 + (hash % 70));
 }
 
 function average(values: number[]): number {
