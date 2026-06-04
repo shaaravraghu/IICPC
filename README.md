@@ -78,6 +78,7 @@ The Rust workspace is the backend foundation for the signal platform.
 | [infrastructure/scripts/deploy.sh](/Users/shaarav/Documents/GitHub_Projects/IICPC/infrastructure/scripts/deploy.sh) | Deployment entrypoint for Kubernetes scaffold |
 | [artifacts/api-server/src/routes/executions.ts](/Users/shaarav/Documents/GitHub_Projects/IICPC/artifacts/api-server/src/routes/executions.ts) | Phase 1.2 execution lifecycle, status, and per-run leaderboard routes |
 | [artifacts/api-server/src/lib/orchestrator.ts](/Users/shaarav/Documents/GitHub_Projects/IICPC/artifacts/api-server/src/lib/orchestrator.ts) | Phase 1.3 in-process pipeline orchestrator and virtual bot group runner |
+| [artifacts/api-server/src/lib/bots/technicalBot.ts](/Users/shaarav/Documents/GitHub_Projects/IICPC/artifacts/api-server/src/lib/bots/technicalBot.ts) | Phase 1.4 technical metric bot with 20 grouped technical metrics |
 | [artifacts/api-server/src/routes/marketData.ts](/Users/shaarav/Documents/GitHub_Projects/IICPC/artifacts/api-server/src/routes/marketData.ts) | Phase 1.2 market-data cache trigger route |
 | [artifacts/api-server/src/routes/paperTrading.ts](/Users/shaarav/Documents/GitHub_Projects/IICPC/artifacts/api-server/src/routes/paperTrading.ts) | Phase 1.2 paper-trading simulation route |
 
@@ -86,6 +87,8 @@ The Rust workspace is the backend foundation for the signal platform.
 Phase 1.2 adds an Express API surface under `artifacts/api-server/src/routes/`.
 
 Phase 1.3 adds [orchestrator.ts](/Users/shaarav/Documents/GitHub_Projects/IICPC/artifacts/api-server/src/lib/orchestrator.ts), which runs the route-triggered pipeline as sequential layers. Each technical, fundamental, and sentiment layer starts multiple virtual bot groups concurrently, stores bot events, aggregates pass/fail results by asset, and updates the detailed run state before passing surviving assets to the next layer.
+
+Phase 1.4 adds [technicalBot.ts](/Users/shaarav/Documents/GitHub_Projects/IICPC/artifacts/api-server/src/lib/bots/technicalBot.ts), which defines the 20 technical analysis metrics in grouped bot configs. The current evaluator is deterministic and data-shape-ready, so real OHLCV-backed calculations can replace the scoring function without changing the orchestrator contract.
 
 | Endpoint | File | Purpose |
 |---|---|---|

@@ -7,6 +7,11 @@ import {
   testRunsDetailedTable,
   testRunsTable,
 } from "@workspace/db";
+import {
+  TECHNICAL_METRIC_GROUPS,
+  technicalBot,
+  type TechnicalBotResult,
+} from "./bots/technicalBot";
 
 export const DEFAULT_ASSETS = [
   "AAPL",
@@ -22,7 +27,7 @@ export const DEFAULT_ASSETS = [
 ];
 
 type PipelineLayer = "technical" | "fundamental" | "sentiment" | "execution" | "paper";
-type BotLayer = "technical" | "fundamental" | "sentiment";
+type BotLayer = "fundamental" | "sentiment";
 type AssetCandidate = {
   assetId: string;
   symbol: string;
@@ -44,13 +49,9 @@ type BotResult = {
   score: number;
   status: "pass" | "fail";
 };
+type LayerBotResult = BotResult | TechnicalBotResult;
 
 const LAYER_GROUPS: Record<BotLayer, MetricGroupConfig[]> = {
-  technical: [
-    { id: "technical-trend-momentum", threshold: 45, salt: 11 },
-    { id: "technical-volatility-volume", threshold: 50, salt: 17 },
-    { id: "technical-market-structure", threshold: 52, salt: 19 },
-  ],
   fundamental: [
     { id: "fundamental-growth-quality", threshold: 50, salt: 23 },
     { id: "fundamental-profitability-balance-sheet", threshold: 54, salt: 29 },
@@ -153,7 +154,15 @@ export async function runPipeline(testRunId: string, assets: string[]): Promise<
 }
 
 async function technicalLayer(testRunId: string, assets: AssetCandidate[]): Promise<AssetCandidate[]> {
-  const results = await orchestrateLayer(testRunId, "technical", assets);
+  const results = (
+    await Promise.all(
+      TECHNICAL_METRIC_GROUPS.map(async (group, groupIndex) => {
+        const botResults = await technicalBot(assets, group);
+        await insertBotResults(testRunId, `technical-bot-${groupIndex + 1}`, botResults);
+        return botResults;
+      })
+    )
+  ).flat();
   const aggregated = aggregateLayerResults(results);
 
   if (aggregated.length > 0) {
@@ -288,11 +297,7 @@ async function executionLayer(testRunId: string, assets: AssetCandidate[]): Prom
   return ranked;
 }
 
-async function orchestrateLayer(
-  testRunId: string,
-  layer: BotLayer,
-  assets: AssetCandidate[]
-): Promise<BotResult[]> {
+async function orchestrateLayer(testRunId: string, layer: BotLayer, assets: AssetCandidate[]): Promise<BotResult[]> {
   const groups = LAYER_GROUPS[layer];
   const botPromises = groups.map((group, groupIndex) =>
     runVirtualBot({
@@ -327,32 +332,42 @@ async function runVirtualBot(options: {
   });
 
   if (results.length > 0) {
-    await db.insert(botEventsTable).values(
-      results.map((result) => ({
-        id: randomUUID(),
-        testRunId: options.testRunId,
-        botId: options.botId,
-        assetId: result.assetId,
-        symbol: result.symbol,
-        metricGroupId: result.metricGroupId,
-        layer: options.layer,
-        status: result.status,
-        resultJson: {
-          layer: result.layer,
-          symbol: result.symbol,
-          score: result.score,
-          threshold: options.metricGroup.threshold,
-          evaluatedAt: new Date().toISOString(),
-        },
-      }))
-    );
+    await insertBotResults(options.testRunId, options.botId, results);
   }
 
   return results;
 }
 
-function aggregateLayerResults(results: BotResult[]): Array<BotResult & { status: "pass" | "fail" }> {
-  const byAsset = new Map<string, BotResult[]>();
+async function insertBotResults(
+  testRunId: string,
+  botId: string,
+  results: Array<BotResult | TechnicalBotResult>
+): Promise<void> {
+  if (results.length === 0) return;
+
+  await db.insert(botEventsTable).values(
+    results.map((result) => ({
+      id: randomUUID(),
+      testRunId,
+      botId,
+      assetId: result.assetId,
+      symbol: result.symbol,
+      metricGroupId: result.metricGroupId,
+      layer: result.layer,
+      status: result.status,
+      resultJson: {
+        layer: result.layer,
+        symbol: result.symbol,
+        score: result.score,
+        metricResults: "metricResults" in result ? result.metricResults : undefined,
+        evaluatedAt: new Date().toISOString(),
+      },
+    }))
+  );
+}
+
+function aggregateLayerResults(results: LayerBotResult[]): Array<LayerBotResult & { status: "pass" | "fail" }> {
+  const byAsset = new Map<string, LayerBotResult[]>();
   for (const result of results) {
     const current = byAsset.get(result.assetId) ?? [];
     current.push(result);
