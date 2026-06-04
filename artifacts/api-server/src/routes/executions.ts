@@ -36,6 +36,11 @@ router.post("/executions/start", async (req, res): Promise<void> => {
 
   const testRunId = parsed.data.test_run_id ?? parsed.data.testRunId ?? randomUUID();
   const assets = normalizeAssets(parsed.data.assets_to_analyze ?? parsed.data.assetsToAnalyze);
+  const invalidAssets = assets.filter((asset) => !isValidAssetSymbol(asset));
+  if (invalidAssets.length > 0) {
+    res.status(400).json({ error: `Invalid asset symbols: ${invalidAssets.join(", ")}` });
+    return;
+  }
 
   await initializeExecutionRun(testRunId, submissionId, assets.length);
 
@@ -167,6 +172,10 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function isStringArray(value: unknown): value is string[] {
   return Array.isArray(value) && value.every((item) => typeof item === "string");
+}
+
+function isValidAssetSymbol(symbol: string): boolean {
+  return /^[A-Z][A-Z0-9.-]{0,9}$/.test(symbol);
 }
 
 export default router;
