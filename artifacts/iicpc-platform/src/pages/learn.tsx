@@ -5,15 +5,12 @@ import {
   useGetFunction,
   getGetFunctionQueryKey,
 } from "@workspace/api-client-react";
-import type { GetFunctionResponse } from "@workspace/api-zod";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Search, BookOpen, ChevronRight } from "lucide-react";
-
-type FnDetail = import("@workspace/api-zod").GetFunctionResponse;
 
 const CATEGORY_LABELS: Record<string, string> = {
   technical: "Technical Analysis",

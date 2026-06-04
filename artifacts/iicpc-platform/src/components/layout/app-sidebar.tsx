@@ -1,6 +1,7 @@
 import { Link, useLocation } from "wouter";
 import { Activity, Code2, Trophy, BookOpen, UserCircle, LogOut } from "lucide-react";
 import { useClerk } from "@clerk/react";
+import { useQuery } from "@tanstack/react-query";
 import {
   Sidebar,
   SidebarContent,
@@ -10,6 +11,13 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
 } from "@/components/ui/sidebar";
+
+type PipelineStatus = {
+  overall: "healthy" | "degraded" | "down";
+  activeRuns: number;
+  queueDepth: number;
+  updatedAt: string;
+};
 
 const menuItems = [
   { icon: Activity,    label: "Monitor",     path: "/" },
@@ -22,6 +30,15 @@ const menuItems = [
 export function AppSidebar() {
   const [location] = useLocation();
   const { signOut } = useClerk();
+  const { data: pipelineStatus } = useQuery({
+    queryKey: ["sidebar-pipeline-status"],
+    queryFn: async () => {
+      const response = await fetch("/api/pipeline/status");
+      if (!response.ok) throw new Error(`Pipeline status failed with ${response.status}`);
+      return response.json() as Promise<PipelineStatus>;
+    },
+    refetchInterval: 5000,
+  });
 
   return (
     <Sidebar>
@@ -62,6 +79,28 @@ export function AppSidebar() {
             );
           })}
         </SidebarMenu>
+        <div className="mx-4 mt-4 rounded border border-white/10 bg-white/[0.03] p-3">
+          <div className="mb-2 flex items-center justify-between">
+            <span className="font-mono text-xs uppercase text-muted-foreground">Runs</span>
+            <span className={`h-2 w-2 rounded-full ${
+              pipelineStatus?.overall === "down"
+                ? "bg-destructive"
+                : pipelineStatus?.overall === "degraded"
+                ? "bg-yellow-400"
+                : "bg-primary"
+            }`} />
+          </div>
+          <div className="grid grid-cols-2 gap-2 font-mono text-xs">
+            <div>
+              <div className="text-muted-foreground/60">Active</div>
+              <div className="text-foreground">{pipelineStatus?.activeRuns ?? 0}</div>
+            </div>
+            <div>
+              <div className="text-muted-foreground/60">Queue</div>
+              <div className="text-foreground">{pipelineStatus?.queueDepth ?? 0}</div>
+            </div>
+          </div>
+        </div>
       </SidebarContent>
 
       <SidebarFooter className="border-t border-white/8 p-4">
