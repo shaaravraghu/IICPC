@@ -2,6 +2,7 @@ import { Router, type IRouter } from "express";
 import { randomUUID } from "crypto";
 import { desc, eq } from "drizzle-orm";
 import { assetScoresTable, db, paperTradePositionsTable, testRunsDetailedTable } from "@workspace/db";
+import { simulatePaperTrading } from "../lib/paperTradingSimulator";
 
 const router: IRouter = Router();
 
@@ -42,46 +43,39 @@ router.post("/paper-trading/execute", async (req, res): Promise<void> => {
     return;
   }
 
-  const allocation = initialCapital / assets.length;
-  const positions = assets.map((asset, index) => {
-    const entryPrice = priceForSymbol(asset.symbol, 1);
-    const exitPrice = priceForSymbol(asset.symbol, 7 + index);
-    const quantity = Math.floor((allocation / entryPrice) * 100) / 100;
-    const pnl = Math.round((exitPrice - entryPrice) * quantity * 100) / 100;
-    const pnlPct = Math.round(((exitPrice - entryPrice) / entryPrice) * 10_000) / 100;
-
-    return {
-      id: randomUUID(),
-      testRunId,
+  const simulation = await simulatePaperTrading(
+    assets.map((asset) => ({
       assetScoreId: asset.id,
+      assetId: asset.assetId,
       symbol: asset.symbol,
-      side: "long",
-      quantity,
-      entryPrice,
-      entryTime: new Date(),
-      exitPrice,
-      exitTime: timeline === "open" ? null : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-      pnl,
-      pnlPct,
-      status: timeline === "open" ? "open" : "closed",
-    };
-  });
+      sentimentScore: asset.sentimentScore,
+      executionScore: asset.executionScore,
+    })),
+    { initialCapital, timeline }
+  );
 
-  await db.insert(paperTradePositionsTable).values(positions);
+  const positions = simulation.positions.map((position) => ({
+    id: randomUUID(),
+    testRunId,
+    ...position,
+  }));
 
-  for (const position of positions) {
-    const paperScore = Math.max(0, Math.min(100, 50 + position.pnlPct * 2));
+  if (positions.length > 0) {
+    await db.insert(paperTradePositionsTable).values(positions);
+  }
+
+  for (const position of simulation.positions) {
     const [asset] = assets.filter((candidate) => candidate.id === position.assetScoreId);
     const compositeScore = average([
       asset?.sentimentScore ?? 0,
       asset?.executionScore ?? 0,
-      paperScore,
+      simulation.paperScore,
     ]);
 
     await db
       .update(assetScoresTable)
-      .set({ paperScore, compositeScore, updatedAt: new Date() })
-      .where(eq(assetScoresTable.id, position.assetScoreId ?? ""));
+      .set({ paperScore: simulation.paperScore, compositeScore, updatedAt: new Date() })
+      .where(eq(assetScoresTable.id, position.assetScoreId));
   }
 
   const refreshedAssets = await db
@@ -100,7 +94,7 @@ router.post("/paper-trading/execute", async (req, res): Promise<void> => {
   await db
     .update(testRunsDetailedTable)
     .set({
-      paperAvgScore: average(positions.map((position) => Math.max(0, Math.min(100, 50 + position.pnlPct * 2)))),
+      paperAvgScore: simulation.paperScore,
       updatedAt: new Date(),
     })
     .where(eq(testRunsDetailedTable.testRunId, testRunId));
@@ -109,7 +103,9 @@ router.post("/paper-trading/execute", async (req, res): Promise<void> => {
     testRunId,
     timeline,
     initialCapital,
-    positions: positions.map((position) => ({
+    paperScore: simulation.paperScore,
+    metrics: simulation.metrics,
+    positions: simulation.positions.map((position) => ({
       symbol: position.symbol,
       side: position.side,
       quantity: position.quantity,
@@ -121,11 +117,6 @@ router.post("/paper-trading/execute", async (req, res): Promise<void> => {
     })),
   });
 });
-
-function priceForSymbol(symbol: string, salt: number): number {
-  const hash = Array.from(symbol).reduce((sum, char, index) => sum + char.charCodeAt(0) * (index + salt), 0);
-  return Math.round((75 + (hash % 120) + Math.sin(hash) * 4) * 100) / 100;
-}
 
 function parseExecutePaperTradingBody(
   body: unknown
