@@ -7,6 +7,21 @@ import {
   testRunsDetailedTable,
   testRunsTable,
 } from "@workspace/db";
+import {
+  TECHNICAL_METRIC_GROUPS,
+  technicalBot,
+  type TechnicalBotResult,
+} from "./bots/technicalBot";
+import {
+  FUNDAMENTAL_METRIC_GROUPS,
+  fundamentalBot,
+  type FundamentalBotResult,
+} from "./bots/fundamentalBot";
+import {
+  SENTIMENT_METHOD_GROUPS,
+  sentimentBot,
+  type SentimentBotResult,
+} from "./bots/sentimentBot";
 
 export const DEFAULT_ASSETS = [
   "AAPL",
@@ -22,7 +37,6 @@ export const DEFAULT_ASSETS = [
 ];
 
 type PipelineLayer = "technical" | "fundamental" | "sentiment" | "execution" | "paper";
-type BotLayer = "technical" | "fundamental" | "sentiment";
 type AssetCandidate = {
   assetId: string;
   symbol: string;
@@ -31,36 +45,14 @@ type AssetCandidate = {
   sentimentScore?: number;
   executionScore?: number;
 };
-type MetricGroupConfig = {
-  id: string;
-  threshold: number;
-  salt: number;
-};
-type BotResult = {
+type LayerBotResult = TechnicalBotResult | FundamentalBotResult | SentimentBotResult;
+type AggregatedLayerResult = {
   assetId: string;
   symbol: string;
-  layer: BotLayer;
+  layer: LayerBotResult["layer"];
   metricGroupId: string;
   score: number;
   status: "pass" | "fail";
-};
-
-const LAYER_GROUPS: Record<BotLayer, MetricGroupConfig[]> = {
-  technical: [
-    { id: "technical-trend-momentum", threshold: 45, salt: 11 },
-    { id: "technical-volatility-volume", threshold: 50, salt: 17 },
-    { id: "technical-market-structure", threshold: 52, salt: 19 },
-  ],
-  fundamental: [
-    { id: "fundamental-growth-quality", threshold: 50, salt: 23 },
-    { id: "fundamental-profitability-balance-sheet", threshold: 54, salt: 29 },
-    { id: "fundamental-valuation-alignment", threshold: 56, salt: 31 },
-  ],
-  sentiment: [
-    { id: "sentiment-news-social", threshold: 0, salt: 37 },
-    { id: "sentiment-options-flow", threshold: 0, salt: 41 },
-    { id: "sentiment-alternative-macro", threshold: 0, salt: 43 },
-  ],
 };
 
 export async function initializeExecutionRun(
@@ -189,7 +181,15 @@ async function technicalLayer(testRunId: string, assets: AssetCandidate[]): Prom
 }
 
 async function fundamentalLayer(testRunId: string, assets: AssetCandidate[]): Promise<AssetCandidate[]> {
-  const results = await orchestrateLayer(testRunId, "fundamental", assets);
+  const results = (
+    await Promise.all(
+      FUNDAMENTAL_METRIC_GROUPS.map(async (group, groupIndex) => {
+        const botResults = await fundamentalBot(assets, group);
+        await insertBotResults(testRunId, `fundamental-bot-${groupIndex + 1}`, botResults);
+        return botResults;
+      })
+    )
+  ).flat();
   const aggregated = aggregateLayerResults(results);
 
   for (const asset of aggregated) {
@@ -223,7 +223,15 @@ async function fundamentalLayer(testRunId: string, assets: AssetCandidate[]): Pr
 }
 
 async function sentimentLayer(testRunId: string, assets: AssetCandidate[]): Promise<AssetCandidate[]> {
-  const results = await orchestrateLayer(testRunId, "sentiment", assets);
+  const results = (
+    await Promise.all(
+      SENTIMENT_METHOD_GROUPS.map(async (group, groupIndex) => {
+        const botResults = await sentimentBot(assets, group);
+        await insertBotResults(testRunId, `sentiment-bot-${groupIndex + 1}`, botResults);
+        return botResults;
+      })
+    )
+  ).flat();
   const aggregated = aggregateLayerResults(results);
 
   for (const asset of aggregated) {
@@ -288,71 +296,34 @@ async function executionLayer(testRunId: string, assets: AssetCandidate[]): Prom
   return ranked;
 }
 
-async function orchestrateLayer(
-  testRunId: string,
-  layer: BotLayer,
-  assets: AssetCandidate[]
-): Promise<BotResult[]> {
-  const groups = LAYER_GROUPS[layer];
-  const botPromises = groups.map((group, groupIndex) =>
-    runVirtualBot({
+async function insertBotResults(testRunId: string, botId: string, results: LayerBotResult[]): Promise<void> {
+  if (results.length === 0) return;
+
+  await db.insert(botEventsTable).values(
+    results.map((result) => ({
+      id: randomUUID(),
       testRunId,
-      botId: `${layer}-bot-${groupIndex + 1}`,
-      layer,
-      metricGroup: group,
-      assets,
-    })
-  );
-
-  return (await Promise.all(botPromises)).flat();
-}
-
-async function runVirtualBot(options: {
-  testRunId: string;
-  botId: string;
-  layer: BotLayer;
-  metricGroup: MetricGroupConfig;
-  assets: AssetCandidate[];
-}): Promise<BotResult[]> {
-  const results = options.assets.map((asset) => {
-    const score = scoreSymbol(asset.symbol, options.metricGroup.salt);
-    return {
-      assetId: asset.assetId,
-      symbol: asset.symbol,
-      layer: options.layer,
-      metricGroupId: options.metricGroup.id,
-      score,
-      status: score >= options.metricGroup.threshold ? ("pass" as const) : ("fail" as const),
-    };
-  });
-
-  if (results.length > 0) {
-    await db.insert(botEventsTable).values(
-      results.map((result) => ({
-        id: randomUUID(),
-        testRunId: options.testRunId,
-        botId: options.botId,
-        assetId: result.assetId,
+      botId,
+      assetId: result.assetId,
+      symbol: result.symbol,
+      metricGroupId: result.metricGroupId,
+      layer: result.layer,
+      status: result.status,
+      resultJson: {
+        layer: result.layer,
         symbol: result.symbol,
-        metricGroupId: result.metricGroupId,
-        layer: options.layer,
-        status: result.status,
-        resultJson: {
-          layer: result.layer,
-          symbol: result.symbol,
-          score: result.score,
-          threshold: options.metricGroup.threshold,
-          evaluatedAt: new Date().toISOString(),
-        },
-      }))
-    );
-  }
-
-  return results;
+        score: result.score,
+        metricResults: "metricResults" in result ? result.metricResults : undefined,
+        methodResults: "methodResults" in result ? result.methodResults : undefined,
+        rawWeightedScore: "rawWeightedScore" in result ? result.rawWeightedScore : undefined,
+        evaluatedAt: new Date().toISOString(),
+      },
+    }))
+  );
 }
 
-function aggregateLayerResults(results: BotResult[]): Array<BotResult & { status: "pass" | "fail" }> {
-  const byAsset = new Map<string, BotResult[]>();
+function aggregateLayerResults(results: LayerBotResult[]): AggregatedLayerResult[] {
+  const byAsset = new Map<string, LayerBotResult[]>();
   for (const result of results) {
     const current = byAsset.get(result.assetId) ?? [];
     current.push(result);
@@ -363,7 +334,10 @@ function aggregateLayerResults(results: BotResult[]): Array<BotResult & { status
     const best = assetResults.reduce((winner, result) => (result.score > winner.score ? result : winner));
     const passed = assetResults.some((result) => result.status === "pass");
     return {
-      ...best,
+      assetId: best.assetId,
+      symbol: best.symbol,
+      layer: best.layer,
+      metricGroupId: best.metricGroupId,
       status: passed ? "pass" : "fail",
       score: average(assetResults.map((result) => result.score)),
     };
