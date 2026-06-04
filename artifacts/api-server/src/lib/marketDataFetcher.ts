@@ -1,5 +1,7 @@
 import { randomUUID } from "crypto";
+import { and, desc, eq } from "drizzle-orm";
 import { db, historicalPricesTable } from "@workspace/db";
+import { logger } from "./logger";
 
 export type MarketDataProvider = "alpha-vantage" | "polygon" | "synthetic";
 export type HistoricalBar = {
@@ -131,13 +133,17 @@ export async function fetchHistoricalData(
   options: FetchHistoricalDataOptions = {}
 ): Promise<HistoricalBar[]> {
   const normalizedSymbol = normalizeSymbol(symbol);
+  if (!isValidSymbol(normalizedSymbol)) {
+    throw new Error(`Invalid market data symbol: ${symbol}`);
+  }
+
   const interval = options.interval ?? "daily";
   const provider = options.provider ?? selectProvider();
   const cache = options.cache ?? true;
   const end = options.end ? new Date(options.end) : new Date();
   const start = options.start ? new Date(options.start) : yearsBefore(end, options.yearsBack ?? 5);
 
-  const bars = await fetchBars(normalizedSymbol, {
+  const bars = await fetchBarsWithFallback(normalizedSymbol, {
     provider,
     interval,
     start,
@@ -146,7 +152,9 @@ export async function fetchHistoricalData(
   });
 
   if (cache && bars.length > 0) {
-    await cacheHistoricalBars(bars);
+    await cacheHistoricalBars(bars).catch((err: unknown) => {
+      logger.warn({ err, symbol: normalizedSymbol, interval }, "Failed to cache market data bars");
+    });
   }
 
   return bars;
@@ -199,6 +207,31 @@ async function fetchBars(optionsSymbol: string, options: {
   }
 
   return generateSyntheticBars(optionsSymbol, options.interval, options.start, options.end);
+}
+
+async function fetchBarsWithFallback(symbol: string, options: {
+  provider: MarketDataProvider;
+  interval: string;
+  start: Date;
+  end: Date;
+  yearsBack: number;
+}): Promise<HistoricalBar[]> {
+  try {
+    const providerBars = validateBars(await fetchBars(symbol, options), symbol, options.interval);
+    if (providerBars.length > 0) {
+      return providerBars;
+    }
+    logger.warn({ symbol, interval: options.interval, provider: options.provider }, "Provider returned no valid market data bars");
+  } catch (err) {
+    logger.warn({ err, symbol, interval: options.interval, provider: options.provider }, "Provider market data fetch failed");
+  }
+
+  const cachedBars = validateBars(await fetchCachedBars(symbol, options.interval, options.start, options.end), symbol, options.interval);
+  if (cachedBars.length > 0) {
+    return cachedBars;
+  }
+
+  return generateSyntheticBars(symbol, options.interval, options.start, options.end);
 }
 
 async function fetchAlphaVantageBars(symbol: string, options: {
@@ -276,8 +309,11 @@ async function fetchPolygonBars(symbol: string, options: {
 }
 
 async function cacheHistoricalBars(bars: HistoricalBar[]): Promise<void> {
+  const validBars = validateBars(bars);
+  if (validBars.length === 0) return;
+
   await db.insert(historicalPricesTable).values(
-    bars.map((bar) => ({
+    validBars.map((bar) => ({
       id: randomUUID(),
       symbol: bar.symbol,
       interval: bar.interval,
@@ -290,6 +326,30 @@ async function cacheHistoricalBars(bars: HistoricalBar[]): Promise<void> {
       source: bar.source,
     }))
   );
+}
+
+async function fetchCachedBars(symbol: string, interval: string, start: Date, end: Date): Promise<HistoricalBar[]> {
+  const rows = await db
+    .select()
+    .from(historicalPricesTable)
+    .where(and(eq(historicalPricesTable.symbol, symbol), eq(historicalPricesTable.interval, interval)))
+    .orderBy(desc(historicalPricesTable.date))
+    .limit(5000);
+
+  return rows
+    .filter((row) => row.date >= start && row.date <= end)
+    .map((row) => ({
+      symbol: row.symbol,
+      interval: row.interval,
+      date: row.date,
+      open: row.open,
+      high: row.high,
+      low: row.low,
+      close: row.close,
+      volume: row.volume,
+      source: `${row.source}:cached`,
+    }))
+    .sort((a, b) => a.date.getTime() - b.date.getTime());
 }
 
 function parseAlphaVantageBar(
@@ -372,6 +432,32 @@ function generateSyntheticBars(symbol: string, interval: string, start: Date, en
   });
 }
 
+function validateBars(bars: HistoricalBar[], expectedSymbol?: string, expectedInterval?: string): HistoricalBar[] {
+  return bars.filter((bar) => {
+    const valid =
+      (!expectedSymbol || bar.symbol === expectedSymbol) &&
+      (!expectedInterval || bar.interval === expectedInterval) &&
+      bar.date instanceof Date &&
+      !Number.isNaN(bar.date.getTime()) &&
+      isPositiveNumber(bar.open) &&
+      isPositiveNumber(bar.high) &&
+      isPositiveNumber(bar.low) &&
+      isPositiveNumber(bar.close) &&
+      Number.isFinite(bar.volume) &&
+      bar.volume >= 0 &&
+      bar.high >= bar.low &&
+      bar.high >= bar.open &&
+      bar.high >= bar.close &&
+      bar.low <= bar.open &&
+      bar.low <= bar.close;
+
+    if (!valid) {
+      logger.debug({ bar }, "Discarded invalid OHLCV bar");
+    }
+    return valid;
+  });
+}
+
 function selectProvider(): MarketDataProvider {
   if (process.env.POLYGON_API_KEY) return "polygon";
   if (process.env.ALPHA_VANTAGE_API_KEY) return "alpha-vantage";
@@ -380,6 +466,10 @@ function selectProvider(): MarketDataProvider {
 
 function normalizeSymbol(symbol: string): string {
   return symbol.trim().toUpperCase();
+}
+
+function isValidSymbol(symbol: string): boolean {
+  return /^[A-Z][A-Z0-9.-]{0,9}$/.test(symbol);
 }
 
 function normalizeAlphaVantageInterval(interval: string): string {
@@ -418,6 +508,10 @@ function numericValue(value: unknown): number | null {
     return Number.isFinite(parsed) ? parsed : null;
   }
   return null;
+}
+
+function isPositiveNumber(value: number): boolean {
+  return Number.isFinite(value) && value > 0;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

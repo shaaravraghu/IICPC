@@ -23,6 +23,7 @@ import {
   type SentimentBotResult,
 } from "./bots/sentimentBot";
 import { simulateExecution } from "./executionSimulator";
+import { logger } from "./logger";
 
 export const DEFAULT_ASSETS = [
   "AAPL",
@@ -120,20 +121,24 @@ export async function initializeExecutionRun(
 }
 
 export async function runPipeline(testRunId: string, assets: string[]): Promise<AssetCandidate[]> {
-  const candidates = assets.map((symbol) => ({ assetId: symbol, symbol }));
+  const validSymbols = assets.map((symbol) => symbol.trim().toUpperCase()).filter(isValidAssetSymbol);
+  if (validSymbols.length === 0) {
+    throw new Error("No valid assets provided for execution pipeline");
+  }
+  const candidates = validSymbols.map((symbol) => ({ assetId: symbol, symbol }));
 
   try {
     await markRunLayer(testRunId, "technical", 10);
-    const technicalPassed = await technicalLayer(testRunId, candidates);
+    const technicalPassed = await measureLayer(testRunId, "technical", () => technicalLayer(testRunId, candidates));
 
     await markRunLayer(testRunId, "fundamental", 35);
-    const fundamentalPassed = await fundamentalLayer(testRunId, technicalPassed);
+    const fundamentalPassed = await measureLayer(testRunId, "fundamental", () => fundamentalLayer(testRunId, technicalPassed));
 
     await markRunLayer(testRunId, "sentiment", 60);
-    const sentimentRanked = await sentimentLayer(testRunId, fundamentalPassed);
+    const sentimentRanked = await measureLayer(testRunId, "sentiment", () => sentimentLayer(testRunId, fundamentalPassed));
 
     await markRunLayer(testRunId, "execution", 80);
-    const executionRanked = await executionLayer(testRunId, sentimentRanked);
+    const executionRanked = await measureLayer(testRunId, "execution", () => executionLayer(testRunId, sentimentRanked));
 
     await markRunLayer(testRunId, "paper", 98);
     await completeRun(testRunId);
@@ -347,6 +352,47 @@ async function insertExecutionEvents(
   );
 }
 
+async function measureLayer<T>(testRunId: string, layer: PipelineLayer, work: () => Promise<T>): Promise<T> {
+  const startedAt = performance.now();
+  try {
+    const result = await work();
+    const latencyMs = Math.round((performance.now() - startedAt) * 100) / 100;
+    await insertLayerTelemetryEvent(testRunId, layer, "completed", latencyMs);
+    logger.info({ testRunId, layer, latencyMs }, "Pipeline layer completed");
+    return result;
+  } catch (err) {
+    const latencyMs = Math.round((performance.now() - startedAt) * 100) / 100;
+    await insertLayerTelemetryEvent(testRunId, layer, "failed", latencyMs);
+    logger.error({ err, testRunId, layer, latencyMs }, "Pipeline layer failed");
+    throw err;
+  }
+}
+
+async function insertLayerTelemetryEvent(
+  testRunId: string,
+  layer: PipelineLayer,
+  status: "completed" | "failed",
+  latencyMs: number
+): Promise<void> {
+  await db.insert(botEventsTable).values({
+    id: randomUUID(),
+    testRunId,
+    botId: `${layer}-latency-monitor`,
+    assetId: "pipeline",
+    symbol: null,
+    metricGroupId: `${layer}-latency`,
+    layer,
+    status,
+    resultJson: {
+      latencyMs,
+      p50LatencyMs: latencyMs,
+      p90LatencyMs: latencyMs,
+      p99LatencyMs: latencyMs,
+      measuredAt: new Date().toISOString(),
+    },
+  });
+}
+
 async function insertBotResults(testRunId: string, botId: string, results: LayerBotResult[]): Promise<void> {
   if (results.length === 0) return;
 
@@ -434,6 +480,7 @@ async function completeRun(testRunId: string): Promise<void> {
 
 async function failRun(testRunId: string, err: unknown): Promise<void> {
   const message = err instanceof Error ? err.message : "Unknown pipeline error";
+  logger.error({ err, testRunId }, "Execution pipeline failed");
   await updateDetailedRun(testRunId, {
     status: "failed",
     currentLayer: "failed",
@@ -444,6 +491,10 @@ async function failRun(testRunId: string, err: unknown): Promise<void> {
     .update(testRunsTable)
     .set({ status: "failed", currentStage: `failed: ${message}`, completedAt: new Date() })
     .where(eq(testRunsTable.id, testRunId));
+}
+
+function isValidAssetSymbol(symbol: string): boolean {
+  return /^[A-Z][A-Z0-9.-]{0,9}$/.test(symbol);
 }
 
 function average(values: number[]): number {
