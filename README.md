@@ -99,7 +99,8 @@ Phase 2.1 adds [fundamentalBot.ts](/Users/shaarav/Documents/GitHub_Projects/IICP
 | `POST /api/executions/start` | `executions.ts` | Creates or resets a detailed run, seeds asset scores, and starts the current route-level pipeline simulation |
 | `GET /api/executions/:testRunId/status` | `executions.ts` | Returns current layer, progress, pass counts, and average scores |
 | `GET /api/leaderboard/:testRunId` | `executions.ts` | Returns per-asset technical, fundamental, sentiment, execution, paper, and composite ranking fields |
-| `POST /api/market-data/fetch` | `marketData.ts` | Generates phase-1 synthetic OHLCV bars and stores them in `historical_prices` |
+| `POST /api/market-data/fetch` | `marketData.ts` | Fetches provider or synthetic OHLCV bars and stores them in `historical_prices` |
+| `POST /api/market-data/seed` | `marketData.ts` | Preloads top-stock OHLCV data for demo/backtest readiness |
 | `POST /api/paper-trading/execute` | `paperTrading.ts` | Creates simulated paper-trade positions and updates paper/composite leaderboard scores |
 
 Example request bodies:
