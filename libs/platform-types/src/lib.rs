@@ -84,6 +84,8 @@ pub struct TechnicalMetricDefinition {
     pub params: &'static [FunctionParamDef],
 }
 
+<<<<<<< HEAD
+=======
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct FundamentalMetricDefinition {
     pub key: &'static str,
@@ -95,6 +97,12 @@ pub struct FundamentalMetricDefinition {
     pub params: &'static [FunctionParamDef],
 }
 
+<<<<<<< HEAD
+<<<<<<< HEAD
+>>>>>>> f181a9b (Fundamental Analysis Metrics Functions Re-defining)
+=======
+=======
+>>>>>>> 5378fc4 (Initial Launch Testing)
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct SentimentMetricDefinition {
     pub key: &'static str,
@@ -107,6 +115,10 @@ pub struct SentimentMetricDefinition {
     pub params: &'static [FunctionParamDef],
 }
 
+<<<<<<< HEAD
+>>>>>>> 912eccc (Creating Agentic AI to create sentiment analysis metrics)
+=======
+>>>>>>> 5378fc4 (Initial Launch Testing)
 #[derive(Clone, Debug, PartialEq)]
 pub struct MetricGroup {
     pub id: String,

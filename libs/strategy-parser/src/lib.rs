@@ -89,15 +89,19 @@ pub fn starter_strategy(owner: impl Into<String>) -> StrategyManifest {
                 id: "momentum-breakout".to_string(),
                 category: MetricCategory::Technical,
                 calls: vec![
-                    FunctionCall::new("relative_strength_index").with_number("period", 14.0),
-                    FunctionCall::new("volume_weighted_average_price").with_number("lookback", 20.0),
+                    FunctionCall::new("trend_strength_adx").with_number("period", 14.0),
+                    FunctionCall::new("momentum_rate_of_change").with_number("period", 12.0),
+                    FunctionCall::new("vwap_distance"),
                 ],
                 pass_threshold: 62.0,
             },
             MetricGroup {
                 id: "trend-confirmation".to_string(),
                 category: MetricCategory::Technical,
-                calls: vec![FunctionCall::new("simple_moving_average").with_number("period", 50.0)],
+                calls: vec![
+                    FunctionCall::new("market_structure_analysis"),
+                    FunctionCall::new("relative_strength_vs_benchmark").with_number("period", 20.0),
+                ],
                 pass_threshold: 55.0,
             },
         ],

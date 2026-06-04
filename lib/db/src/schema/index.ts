@@ -2,3 +2,8 @@ export * from "./users";
 export * from "./submissions";
 export * from "./testRuns";
 export * from "./functions";
+export * from "./testRunsDetailed";
+export * from "./assetScores";
+export * from "./botEvents";
+export * from "./historicalPrices";
+export * from "./paperTradePositions";
