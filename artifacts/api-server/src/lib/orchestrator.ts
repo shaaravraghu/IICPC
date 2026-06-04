@@ -145,7 +145,15 @@ export async function runPipeline(testRunId: string, assets: string[]): Promise<
 }
 
 async function technicalLayer(testRunId: string, assets: AssetCandidate[]): Promise<AssetCandidate[]> {
-  const results = await orchestrateLayer(testRunId, "technical", assets);
+  const results = (
+    await Promise.all(
+      TECHNICAL_METRIC_GROUPS.map(async (group, groupIndex) => {
+        const botResults = await technicalBot(assets, group);
+        await insertBotResults(testRunId, `technical-bot-${groupIndex + 1}`, botResults);
+        return botResults;
+      })
+    )
+  ).flat();
   const aggregated = aggregateLayerResults(results);
 
   if (aggregated.length > 0) {

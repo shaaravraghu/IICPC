@@ -81,6 +81,7 @@ The Rust workspace is the backend foundation for the signal platform.
 | [artifacts/api-server/src/lib/bots/technicalBot.ts](/Users/shaarav/Documents/GitHub_Projects/IICPC/artifacts/api-server/src/lib/bots/technicalBot.ts) | Phase 1.4 technical metric bot with 20 grouped technical metrics |
 | [artifacts/api-server/src/lib/bots/fundamentalBot.ts](/Users/shaarav/Documents/GitHub_Projects/IICPC/artifacts/api-server/src/lib/bots/fundamentalBot.ts) | Phase 2.1 fundamental validation bot with 20 grouped business metrics |
 | [artifacts/api-server/src/lib/bots/sentimentBot.ts](/Users/shaarav/Documents/GitHub_Projects/IICPC/artifacts/api-server/src/lib/bots/sentimentBot.ts) | Phase 2.1 weighted sentiment bot with 15 qualitative methods |
+| [artifacts/api-server/src/lib/marketDataFetcher.ts](/Users/shaarav/Documents/GitHub_Projects/IICPC/artifacts/api-server/src/lib/marketDataFetcher.ts) | Phase 2.2 Alpha Vantage/Polygon/synthetic OHLCV fetcher and cache seeder |
 | [artifacts/api-server/src/routes/marketData.ts](/Users/shaarav/Documents/GitHub_Projects/IICPC/artifacts/api-server/src/routes/marketData.ts) | Phase 1.2 market-data cache trigger route |
 | [artifacts/api-server/src/routes/paperTrading.ts](/Users/shaarav/Documents/GitHub_Projects/IICPC/artifacts/api-server/src/routes/paperTrading.ts) | Phase 1.2 paper-trading simulation route |
 
@@ -94,12 +95,15 @@ Phase 1.4 adds [technicalBot.ts](/Users/shaarav/Documents/GitHub_Projects/IICPC/
 
 Phase 2.1 adds [fundamentalBot.ts](/Users/shaarav/Documents/GitHub_Projects/IICPC/artifacts/api-server/src/lib/bots/fundamentalBot.ts) and [sentimentBot.ts](/Users/shaarav/Documents/GitHub_Projects/IICPC/artifacts/api-server/src/lib/bots/sentimentBot.ts). Fundamental bots filter technically approved assets through 20 validation metrics. Sentiment bots score the surviving assets with 15 weighted methods; the normalized sentiment score is the first leaderboard score column.
 
+Phase 2.2 adds [marketDataFetcher.ts](/Users/shaarav/Documents/GitHub_Projects/IICPC/artifacts/api-server/src/lib/marketDataFetcher.ts). It fetches and caches OHLCV bars from Polygon when `POLYGON_API_KEY` is set, Alpha Vantage when `ALPHA_VANTAGE_API_KEY` is set, and otherwise falls back to deterministic synthetic data for local demos. It supports daily and intraday-style intervals such as `5min`, and exposes a top-100 stock seed helper.
+
 | Endpoint | File | Purpose |
 |---|---|---|
 | `POST /api/executions/start` | `executions.ts` | Creates or resets a detailed run, seeds asset scores, and starts the current route-level pipeline simulation |
 | `GET /api/executions/:testRunId/status` | `executions.ts` | Returns current layer, progress, pass counts, and average scores |
 | `GET /api/leaderboard/:testRunId` | `executions.ts` | Returns per-asset technical, fundamental, sentiment, execution, paper, and composite ranking fields |
-| `POST /api/market-data/fetch` | `marketData.ts` | Generates phase-1 synthetic OHLCV bars and stores them in `historical_prices` |
+| `POST /api/market-data/fetch` | `marketData.ts` | Fetches provider or synthetic OHLCV bars and stores them in `historical_prices` |
+| `POST /api/market-data/seed` | `marketData.ts` | Preloads top-stock OHLCV data for demo/backtest readiness |
 | `POST /api/paper-trading/execute` | `paperTrading.ts` | Creates simulated paper-trade positions and updates paper/composite leaderboard scores |
 
 Example request bodies:

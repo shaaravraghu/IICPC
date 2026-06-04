@@ -1,6 +1,9 @@
 import { Router, type IRouter } from "express";
-import { randomUUID } from "crypto";
-import { db, historicalPricesTable } from "@workspace/db";
+import {
+  fetchHistoricalDataBatch,
+  seedTopMarketData,
+  type MarketDataProvider,
+} from "../lib/marketDataFetcher";
 
 const router: IRouter = Router();
 
@@ -12,6 +15,8 @@ type FetchMarketDataRequest = {
   date_range?: DateRangeInput;
   dateRange?: DateRangeInput;
   interval?: string;
+  provider?: MarketDataProvider;
+  yearsBack?: number;
 };
 
 // POST /market-data/fetch
@@ -30,29 +35,38 @@ router.post("/market-data/fetch", async (req, res): Promise<void> => {
 
   const interval = parsed.data.interval ?? "daily";
   const dateRange = parsed.data.date_range ?? parsed.data.dateRange;
-  const bars = symbols.flatMap((symbol) => generateBars(symbol, interval, dateRange?.start, dateRange?.end));
-
-  await db.insert(historicalPricesTable).values(
-    bars.map((bar) => ({
-      id: randomUUID(),
-      symbol: bar.symbol,
-      interval: bar.interval,
-      date: bar.date,
-      open: bar.open,
-      high: bar.high,
-      low: bar.low,
-      close: bar.close,
-      volume: bar.volume,
-      source: "phase-1-synthetic-cache",
-    }))
-  );
+  const bars = await fetchHistoricalDataBatch(symbols, {
+    interval,
+    start: dateRange?.start,
+    end: dateRange?.end,
+    provider: parsed.data.provider,
+    yearsBack: parsed.data.yearsBack,
+    cache: true,
+  });
 
   res.status(202).json({
     symbols,
     interval,
     cachedBars: bars.length,
-    source: "phase-1-synthetic-cache",
+    source: bars[0]?.source ?? parsed.data.provider ?? "synthetic",
   });
+});
+
+// POST /market-data/seed
+router.post("/market-data/seed", async (req, res): Promise<void> => {
+  const parsed = parseSeedMarketDataBody(req.body);
+  if (!parsed.ok) {
+    res.status(400).json({ error: parsed.error });
+    return;
+  }
+
+  const result = await seedTopMarketData(parsed.data.limit, {
+    interval: parsed.data.interval ?? "daily",
+    provider: parsed.data.provider,
+    yearsBack: parsed.data.yearsBack,
+  });
+
+  res.status(202).json(result);
 });
 
 function normalizeSymbols(rawSymbols: string | string[] | undefined): string[] {
@@ -92,7 +106,57 @@ function parseFetchMarketDataBody(body: unknown): { ok: true; data: FetchMarketD
   }
   data.interval = interval;
 
+  const provider = body["provider"];
+  if (provider !== undefined && !isProvider(provider)) {
+    return { ok: false, error: "provider must be alpha-vantage, polygon, or synthetic" };
+  }
+  data.provider = provider;
+
+  const yearsBack = body["yearsBack"];
+  if (yearsBack !== undefined && (typeof yearsBack !== "number" || yearsBack <= 0)) {
+    return { ok: false, error: "yearsBack must be a positive number" };
+  }
+  data.yearsBack = yearsBack;
+
   return { ok: true, data };
+}
+
+function parseSeedMarketDataBody(
+  body: unknown
+): { ok: true; data: { limit: number; interval?: string; provider?: MarketDataProvider; yearsBack?: number } } | { ok: false; error: string } {
+  if (!isRecord(body)) {
+    return { ok: false, error: "Request body must be an object" };
+  }
+
+  const limit = body["limit"];
+  if (limit !== undefined && (typeof limit !== "number" || limit <= 0 || limit > 100)) {
+    return { ok: false, error: "limit must be a number between 1 and 100" };
+  }
+
+  const interval = body["interval"];
+  if (interval !== undefined && typeof interval !== "string") {
+    return { ok: false, error: "interval must be a string" };
+  }
+
+  const provider = body["provider"];
+  if (provider !== undefined && !isProvider(provider)) {
+    return { ok: false, error: "provider must be alpha-vantage, polygon, or synthetic" };
+  }
+
+  const yearsBack = body["yearsBack"];
+  if (yearsBack !== undefined && (typeof yearsBack !== "number" || yearsBack <= 0)) {
+    return { ok: false, error: "yearsBack must be a positive number" };
+  }
+
+  return {
+    ok: true,
+    data: {
+      limit: limit ?? 100,
+      interval,
+      provider,
+      yearsBack,
+    },
+  };
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -111,36 +175,8 @@ function isDateRange(value: unknown): value is DateRangeInput {
   );
 }
 
-function generateBars(symbol: string, interval: string, start?: string, end?: string) {
-  const endDate = end ? new Date(end) : new Date();
-  const startDate = start ? new Date(start) : new Date(endDate.getTime() - 29 * 24 * 60 * 60 * 1000);
-  const days = Math.max(1, Math.min(120, Math.ceil((endDate.getTime() - startDate.getTime()) / 86_400_000) + 1));
-  const basePrice = 50 + (symbol.charCodeAt(0) % 80);
-
-  return Array.from({ length: days }, (_, index) => {
-    const date = new Date(startDate.getTime() + index * 86_400_000);
-    const drift = index * 0.35;
-    const wave = Math.sin(index / 3) * 2;
-    const open = roundPrice(basePrice + drift + wave);
-    const close = roundPrice(open + Math.cos(index / 2) * 1.4);
-    const high = roundPrice(Math.max(open, close) + 1.2);
-    const low = roundPrice(Math.min(open, close) - 1.1);
-
-    return {
-      symbol,
-      interval,
-      date,
-      open,
-      high,
-      low,
-      close,
-      volume: 500_000 + (symbol.length + index) * 12_500,
-    };
-  });
-}
-
-function roundPrice(value: number): number {
-  return Math.round(value * 100) / 100;
+function isProvider(value: unknown): value is MarketDataProvider {
+  return value === "alpha-vantage" || value === "polygon" || value === "synthetic";
 }
 
 export default router;
