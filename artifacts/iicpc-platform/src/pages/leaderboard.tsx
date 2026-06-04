@@ -73,7 +73,8 @@ async function fetchJson<T>(url: string): Promise<T> {
 }
 
 export default function Leaderboard() {
-  const [requestedRunId, setRequestedRunId] = useState("");
+  const initialRunId = new URLSearchParams(window.location.search).get("run") ?? "";
+  const [requestedRunId, setRequestedRunId] = useState(initialRunId);
   const [symbolFilter, setSymbolFilter] = useState("");
   const [sortKey, setSortKey] = useState<SortKey>("compositeScore");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");

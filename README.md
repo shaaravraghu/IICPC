@@ -85,6 +85,9 @@ The Rust workspace is the backend foundation for the signal platform.
 | [artifacts/api-server/src/lib/executionSimulator.ts](/Users/shaarav/Documents/GitHub_Projects/IICPC/artifacts/api-server/src/lib/executionSimulator.ts) | Phase 2.3 historical trade simulator for execution scoring |
 | [artifacts/api-server/src/routes/marketData.ts](/Users/shaarav/Documents/GitHub_Projects/IICPC/artifacts/api-server/src/routes/marketData.ts) | Phase 1.2 market-data cache trigger route |
 | [artifacts/api-server/src/routes/paperTrading.ts](/Users/shaarav/Documents/GitHub_Projects/IICPC/artifacts/api-server/src/routes/paperTrading.ts) | Phase 1.2 paper-trading simulation route |
+| [artifacts/iicpc-platform/src/pages/editor.tsx](/Users/shaarav/Documents/GitHub_Projects/IICPC/artifacts/iicpc-platform/src/pages/editor.tsx) | Phase 2.6 run-analysis editor integration and live progress panel |
+| [artifacts/iicpc-platform/src/pages/leaderboard.tsx](/Users/shaarav/Documents/GitHub_Projects/IICPC/artifacts/iicpc-platform/src/pages/leaderboard.tsx) | Phase 2.5/2.6 live 3-column asset leaderboard |
+| [artifacts/iicpc-platform/src/components/layout/app-sidebar.tsx](/Users/shaarav/Documents/GitHub_Projects/IICPC/artifacts/iicpc-platform/src/components/layout/app-sidebar.tsx) | Phase 2.6 live run status sidebar widget |
 
 ## TypeScript API Prototype
 
@@ -100,11 +103,13 @@ Phase 2.2 adds [marketDataFetcher.ts](/Users/shaarav/Documents/GitHub_Projects/I
 
 Phase 2.3 adds [executionSimulator.ts](/Users/shaarav/Documents/GitHub_Projects/IICPC/artifacts/api-server/src/lib/executionSimulator.ts). It fetches daily and intraday bars, samples five intraday trades plus short, medium, and long horizon trades, calculates max return, Sharpe ratio, max drawdown, win rate, and profit factor, then normalizes those into the execution score. This is the second leaderboard score column.
 
+Phase 2.6 wires the frontend into the analysis pipeline. [editor.tsx](/Users/shaarav/Documents/GitHub_Projects/IICPC/artifacts/iicpc-platform/src/pages/editor.tsx) starts `/api/executions/start`, polls `/api/executions/:testRunId/status`, shows the technical to paper progress flow, and links directly to the matching run leaderboard. [app-sidebar.tsx](/Users/shaarav/Documents/GitHub_Projects/IICPC/artifacts/iicpc-platform/src/components/layout/app-sidebar.tsx) polls `/api/pipeline/status` for the live run widget.
+
 | Endpoint | File | Purpose |
 |---|---|---|
 | `POST /api/executions/start` | `executions.ts` | Creates or resets a detailed run, seeds asset scores, and starts the current route-level pipeline simulation |
 | `GET /api/executions/:testRunId/status` | `executions.ts` | Returns current layer, progress, pass counts, and average scores |
-| `GET /api/leaderboard/:testRunId` | `executions.ts` | Returns per-asset technical, fundamental, sentiment, execution, paper, and composite ranking fields |
+| `GET /api/leaderboard/:testRunId` | `leaderboard.ts` | Returns per-asset technical, fundamental, sentiment, execution, paper, and composite ranking fields |
 | `POST /api/market-data/fetch` | `marketData.ts` | Fetches provider or synthetic OHLCV bars and stores them in `historical_prices` |
 | `POST /api/market-data/seed` | `marketData.ts` | Preloads top-stock OHLCV data for demo/backtest readiness |
 | `POST /api/paper-trading/execute` | `paperTrading.ts` | Creates simulated paper-trade positions and updates paper/composite leaderboard scores |

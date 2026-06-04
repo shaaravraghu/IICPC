@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@clerk/react";
 import {
   useCreateSubmission,
@@ -10,7 +10,8 @@ import {
   useGetSubmission,
   getGetSubmissionQueryKey,
 } from "@workspace/api-client-react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -18,7 +19,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Play, Upload, ChevronRight, Clock, Zap, CheckSquare, AlertTriangle } from "lucide-react";
+import { Play, Upload, ChevronRight, Clock, Zap, CheckSquare, AlertTriangle, Trophy } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 
 const STARTER_CODE: Record<string, string> = {
@@ -145,15 +146,65 @@ func (ob *OrderBook) match() {
 `,
 };
 
-const STAGE_LABELS = ["Building", "Deploying", "Bot Warmup", "Load Test", "Scoring", "Done"];
+const STAGE_LABELS = ["Technical", "Fundamental", "Sentiment", "Execution", "Paper", "Done"];
+const DEFAULT_ANALYSIS_ASSETS = "AAPL,MSFT,NVDA,GOOGL,AMZN,META,TSLA,JPM,UNH,V";
+
+type ExecutionStartResponse = {
+  testRunId: string;
+  submissionId: string;
+  status: string;
+  currentLayer: string;
+  assetsToAnalyze: number;
+  estimatedDurationSeconds: number;
+};
+
+type ExecutionStatus = {
+  testRunId: string;
+  submissionId: string | null;
+  status: string;
+  currentLayer: string;
+  progressPct: number;
+  assetsTotal: number;
+  assetsAnalyzed: number;
+  technicalPassCount: number;
+  fundamentalPassCount: number;
+  sentimentPassCount: number;
+  sentimentAvgScore: number | null;
+  executionAvgScore: number | null;
+  paperAvgScore: number | null;
+  completedAt: string | null;
+};
+
+async function postJson<T>(url: string, body: unknown): Promise<T> {
+  const response = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!response.ok) {
+    throw new Error(`Request failed with ${response.status}`);
+  }
+  return response.json() as Promise<T>;
+}
+
+async function getJson<T>(url: string): Promise<T> {
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`Request failed with ${response.status}`);
+  }
+  return response.json() as Promise<T>;
+}
 
 export default function Editor() {
   const { userId } = useAuth();
   const queryClient = useQueryClient();
+  const [, setLocation] = useLocation();
   const [language, setLanguage] = useState<"cpp" | "rust" | "go">("go");
   const [code, setCode] = useState(STARTER_CODE.go);
   const [activeSubmissionId, setActiveSubmissionId] = useState<string | null>(null);
-  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [activeTestRunId, setActiveTestRunId] = useState<string | null>(null);
+  const [assetUniverse, setAssetUniverse] = useState(DEFAULT_ANALYSIS_ASSETS);
+  const [runError, setRunError] = useState<string | null>(null);
 
   const createSubmission = useCreateSubmission();
   const runSubmission = useRunSubmission();
@@ -184,28 +235,47 @@ export default function Editor() {
     }
   );
 
+  const { data: executionStatus } = useQuery({
+    queryKey: ["execution-status", activeTestRunId],
+    queryFn: () => getJson<ExecutionStatus>(`/api/executions/${activeTestRunId}/status`),
+    enabled: !!activeTestRunId,
+    refetchInterval: activeTestRunId ? 2000 : false,
+  });
+
   useEffect(() => {
     setCode(STARTER_CODE[language]);
   }, [language]);
 
   const handleSubmit = async () => {
+    setRunError(null);
     const sub = await createSubmission.mutateAsync({
       data: { language, filename: `solution.${language === "cpp" ? "cpp" : language}`, code }
     });
     setActiveSubmissionId(sub.id);
     await queryClient.invalidateQueries({ queryKey: getListSubmissionsQueryKey() });
     await runSubmission.mutateAsync({ id: sub.id, data: {} });
+
+    try {
+      const execution = await postJson<ExecutionStartResponse>("/api/executions/start", {
+        submission_id: sub.id,
+        assets_to_analyze: assetUniverse,
+      });
+      setActiveTestRunId(execution.testRunId);
+    } catch (err) {
+      setRunError(err instanceof Error ? err.message : "Execution run failed to start");
+    }
   };
 
   const stageIndex = (() => {
-    if (!activeSubmission) return -1;
-    const s = activeSubmission.status;
-    if (s === "pending") return 0;
-    if (s === "building") return 1;
-    if (s === "running") return 3;
-    if (s === "completed") return 5;
-    if (s === "failed") return -1;
-    return 2;
+    if (!executionStatus) return -1;
+    if (executionStatus.currentLayer === "technical") return 0;
+    if (executionStatus.currentLayer === "fundamental") return 1;
+    if (executionStatus.currentLayer === "sentiment") return 2;
+    if (executionStatus.currentLayer === "execution") return 3;
+    if (executionStatus.currentLayer === "paper") return 4;
+    if (executionStatus.currentLayer === "completed") return 5;
+    if (executionStatus.status === "failed") return -1;
+    return 0;
   })();
 
   const latencyData = telemetry?.latencySeries?.map((p) => ({ t: p.t, v: p.v })) ?? [];
@@ -215,7 +285,7 @@ export default function Editor() {
     <div className="h-screen flex flex-col bg-background">
       <div className="flex items-center justify-between px-6 py-3 border-b border-border bg-card shrink-0">
         <div className="flex items-center gap-4">
-          <span className="font-mono text-sm font-semibold text-muted-foreground uppercase tracking-widest">Exchange Engine</span>
+          <span className="font-mono text-sm font-semibold text-muted-foreground uppercase tracking-widest">Signal Analysis</span>
           <Select value={language} onValueChange={(v) => setLanguage(v as "cpp" | "rust" | "go")}>
             <SelectTrigger className="w-28 h-8 text-xs font-mono" data-testid="select-language">
               <SelectValue />
@@ -234,7 +304,7 @@ export default function Editor() {
           data-testid="button-submit"
         >
           <Upload className="h-3.5 w-3.5" />
-          {createSubmission.isPending || runSubmission.isPending ? "Submitting..." : "Submit & Run"}
+          {createSubmission.isPending || runSubmission.isPending ? "Starting..." : "Run Analysis"}
         </Button>
       </div>
 
@@ -244,6 +314,15 @@ export default function Editor() {
             <div className="px-4 py-2 border-b border-border bg-card/50 flex items-center gap-2 shrink-0">
               <div className="h-2 w-2 rounded-full bg-primary" />
               <span className="text-xs font-mono text-muted-foreground">editor</span>
+            </div>
+            <div className="border-b border-border bg-card/30 p-3">
+              <div className="mb-1 text-xs font-mono uppercase text-muted-foreground">Assets</div>
+              <textarea
+                value={assetUniverse}
+                onChange={(event) => setAssetUniverse(event.target.value)}
+                className="h-16 w-full resize-none rounded border border-border bg-background p-2 font-mono text-xs outline-none"
+                spellCheck={false}
+              />
             </div>
             <textarea
               data-testid="input-code"
@@ -282,7 +361,7 @@ export default function Editor() {
                     <div>
                       <div className="flex items-center justify-between mb-3">
                         <span className="text-xs font-mono text-muted-foreground uppercase tracking-widest">Pipeline</span>
-                        {activeSubmission?.status === "failed" && (
+                        {executionStatus?.status === "failed" && (
                           <Badge variant="destructive" className="text-xs">Failed</Badge>
                         )}
                       </div>
@@ -304,9 +383,43 @@ export default function Editor() {
                         ))}
                       </div>
                       {activeSubmission?.status !== "failed" && stageIndex >= 0 && (
-                        <Progress value={(stageIndex / 5) * 100} className="mt-4 h-1" />
+                        <Progress value={executionStatus?.progressPct ?? (stageIndex / 5) * 100} className="mt-4 h-1" />
+                      )}
+                      {executionStatus && (
+                        <div className="mt-4 grid grid-cols-3 gap-2 text-xs font-mono">
+                          <div className="rounded border border-border bg-card p-2">
+                            <div className="uppercase text-muted-foreground/60">Assets</div>
+                            <div>{executionStatus.assetsAnalyzed}/{executionStatus.assetsTotal}</div>
+                          </div>
+                          <div className="rounded border border-border bg-card p-2">
+                            <div className="uppercase text-muted-foreground/60">Technical</div>
+                            <div>{executionStatus.technicalPassCount}</div>
+                          </div>
+                          <div className="rounded border border-border bg-card p-2">
+                            <div className="uppercase text-muted-foreground/60">Sentiment</div>
+                            <div>{executionStatus.sentimentAvgScore?.toFixed(1) ?? "-"}</div>
+                          </div>
+                        </div>
+                      )}
+                      {activeTestRunId && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="mt-4 h-8 gap-2 font-mono text-xs"
+                          onClick={() => setLocation(`/leaderboard?run=${encodeURIComponent(activeTestRunId)}`)}
+                        >
+                          <Trophy className="h-3.5 w-3.5" />
+                          Open Leaderboard
+                        </Button>
                       )}
                     </div>
+
+                    {runError && (
+                      <div className="flex items-center gap-2 p-3 border border-destructive/30 rounded bg-destructive/10">
+                        <AlertTriangle className="h-4 w-4 text-destructive shrink-0" />
+                        <p className="text-xs text-destructive">{runError}</p>
+                      </div>
+                    )}
 
                     {activeSubmission?.status === "completed" && (
                       <>
