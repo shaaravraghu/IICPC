@@ -83,6 +83,7 @@ The Rust workspace is the backend foundation for the signal platform.
 | [artifacts/api-server/src/lib/bots/sentimentBot.ts](/Users/shaarav/Documents/GitHub_Projects/IICPC/artifacts/api-server/src/lib/bots/sentimentBot.ts) | Phase 2.1 weighted sentiment bot with 15 qualitative methods |
 | [artifacts/api-server/src/lib/marketDataFetcher.ts](/Users/shaarav/Documents/GitHub_Projects/IICPC/artifacts/api-server/src/lib/marketDataFetcher.ts) | Phase 2.2 Alpha Vantage/Polygon/synthetic OHLCV fetcher and cache seeder |
 | [artifacts/api-server/src/lib/executionSimulator.ts](/Users/shaarav/Documents/GitHub_Projects/IICPC/artifacts/api-server/src/lib/executionSimulator.ts) | Phase 2.3 historical trade simulator for execution scoring |
+| [artifacts/api-server/src/lib/paperTradingSimulator.ts](/Users/shaarav/Documents/GitHub_Projects/IICPC/artifacts/api-server/src/lib/paperTradingSimulator.ts) | Phase 2.4 preset-timeline paper trading simulator for paper scoring |
 | [artifacts/api-server/src/routes/marketData.ts](/Users/shaarav/Documents/GitHub_Projects/IICPC/artifacts/api-server/src/routes/marketData.ts) | Phase 1.2 market-data cache trigger route |
 | [artifacts/api-server/src/routes/paperTrading.ts](/Users/shaarav/Documents/GitHub_Projects/IICPC/artifacts/api-server/src/routes/paperTrading.ts) | Phase 1.2 paper-trading simulation route |
 
@@ -99,6 +100,8 @@ Phase 2.1 adds [fundamentalBot.ts](/Users/shaarav/Documents/GitHub_Projects/IICP
 Phase 2.2 adds [marketDataFetcher.ts](/Users/shaarav/Documents/GitHub_Projects/IICPC/artifacts/api-server/src/lib/marketDataFetcher.ts). It fetches and caches OHLCV bars from Polygon when `POLYGON_API_KEY` is set, Alpha Vantage when `ALPHA_VANTAGE_API_KEY` is set, and otherwise falls back to deterministic synthetic data for local demos. It supports daily and intraday-style intervals such as `5min`, and exposes a top-100 stock seed helper.
 
 Phase 2.3 adds [executionSimulator.ts](/Users/shaarav/Documents/GitHub_Projects/IICPC/artifacts/api-server/src/lib/executionSimulator.ts). It fetches daily and intraday bars, samples five intraday trades plus short, medium, and long horizon trades, calculates max return, Sharpe ratio, max drawdown, win rate, and profit factor, then normalizes those into the execution score. This is the second leaderboard score column.
+
+Phase 2.4 adds [paperTradingSimulator.ts](/Users/shaarav/Documents/GitHub_Projects/IICPC/artifacts/api-server/src/lib/paperTradingSimulator.ts). It sizes positions from execution scores, simulates preset-timeline price movement, tracks PnL and drawdown, and normalizes total return, win rate, and drawdown into the paper score. This is the third leaderboard score column.
 
 | Endpoint | File | Purpose |
 |---|---|---|
