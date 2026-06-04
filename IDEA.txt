@@ -1,0 +1,10 @@
+THIS IS WHAT WE PLAN TO DO 
+
+People write code to use the 3 analysis of signals which are saved as function calls that can be called while implementing with parameters (you majorly focus on the logic over the code).  Every function generates a distributed fleet to analyse quick. We use a low-latency language that is capable and get things done. We'll make this deployable. 
+
+This is how it should work:
+First a group of technical metrics are set in multiple groups, each group handled by a bot. These bots filter assets/ push assets when triggered in a live ecosystem to the validation layer (fundamental). 
+The fundamental analysis layer picks an asset/ stock and pushes it through multiple groups of metrics. Each group is handled by a bot. The ones that pass through any of these groups are the ones which get sentiment tested.
+The sentiment layer provides points to the various assets after contributing multi-dimensional analysis. The assets stocks get ranked high to low. These point form the first column on the leaderboard.
+Then we proceed with the execution simulator. Here the assets/ stocks need to be tested with historical data (5 random intra-day, short, medium and long term (each) trades). A detailed point scoring system for these goes on the next column of the table.
+Allow people to make paper trades and with pr-set timelines and a 3rd column on the leaderboard for this.
