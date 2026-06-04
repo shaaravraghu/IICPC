@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { desc, eq, max, count, and, isNotNull } from "drizzle-orm";
-import { db, submissionsTable, usersTable, testRunsTable } from "@workspace/db";
+import { assetScoresTable, db, submissionsTable, testRunsDetailedTable, testRunsTable } from "@workspace/db";
 import {
   GetLeaderboardQueryParams,
   GetLeaderboardResponse,
@@ -84,6 +84,54 @@ router.get("/leaderboard/summary", async (_req, res): Promise<void> => {
   );
 });
 
+// GET /leaderboard/:testRunId — detailed asset leaderboard for signal analysis runs.
+router.get("/leaderboard/:testRunId", async (req, res): Promise<void> => {
+  const testRunId = req.params["testRunId"];
+  if (!testRunId) {
+    res.status(400).json({ error: "testRunId is required" });
+    return;
+  }
+
+  const [run] = await db.select().from(testRunsDetailedTable).where(eq(testRunsDetailedTable.testRunId, testRunId));
+  const [baseRun] = await db.select().from(testRunsTable).where(eq(testRunsTable.id, testRunId));
+  const submissionId = run?.submissionId ?? baseRun?.submissionId ?? null;
+  const [submission] = submissionId
+    ? await db.select().from(submissionsTable).where(eq(submissionsTable.id, submissionId))
+    : [];
+
+  const rows = await db
+    .select()
+    .from(assetScoresTable)
+    .where(eq(assetScoresTable.testRunId, testRunId))
+    .orderBy(desc(assetScoresTable.compositeScore));
+
+  res.json(
+    rows.map((row, index) => ({
+      rank: row.compositeRank ?? index + 1,
+      assetId: row.assetId,
+      symbol: row.symbol,
+      sentimentScore: row.sentimentScore ?? null,
+      executionScore: row.executionScore ?? null,
+      paperScore: row.paperScore ?? null,
+      compositeScore: row.compositeScore ?? average([
+        row.sentimentScore,
+        row.executionScore,
+        row.paperScore,
+      ]),
+      technicalScore: row.technicalScore ?? null,
+      fundamentalScore: row.fundamentalScore ?? null,
+      technicalPass: row.technicalPass === 1,
+      fundamentalPass: row.fundamentalPass === 1,
+      rejectedAtLayer: row.rejectedAtLayer,
+      rejectionReason: row.rejectionReason,
+      team: submission?.teamName ?? submission?.username ?? null,
+      submissionId,
+      testRunId,
+      timestamp: row.updatedAt.toISOString(),
+    }))
+  );
+});
+
 // GET /leaderboard
 router.get("/leaderboard", async (req, res): Promise<void> => {
   const parsed = GetLeaderboardQueryParams.safeParse(req.query);
@@ -142,5 +190,11 @@ router.get("/leaderboard", async (req, res): Promise<void> => {
 
   res.json(GetLeaderboardResponse.parse(entries));
 });
+
+function average(values: Array<number | null | undefined>): number | null {
+  const present = values.filter((value): value is number => typeof value === "number");
+  if (present.length === 0) return null;
+  return Math.round((present.reduce((sum, value) => sum + value, 0) / present.length) * 100) / 100;
+}
 
 export default router;
