@@ -81,6 +81,8 @@ The Rust workspace is the backend foundation for the signal platform.
 | [artifacts/api-server/src/lib/bots/technicalBot.ts](/Users/shaarav/Documents/GitHub_Projects/IICPC/artifacts/api-server/src/lib/bots/technicalBot.ts) | Phase 1.4 technical metric bot with 20 grouped technical metrics |
 | [artifacts/api-server/src/lib/bots/fundamentalBot.ts](/Users/shaarav/Documents/GitHub_Projects/IICPC/artifacts/api-server/src/lib/bots/fundamentalBot.ts) | Phase 2.1 fundamental validation bot with 20 grouped business metrics |
 | [artifacts/api-server/src/lib/bots/sentimentBot.ts](/Users/shaarav/Documents/GitHub_Projects/IICPC/artifacts/api-server/src/lib/bots/sentimentBot.ts) | Phase 2.1 weighted sentiment bot with 15 qualitative methods |
+| [artifacts/api-server/src/lib/marketDataFetcher.ts](/Users/shaarav/Documents/GitHub_Projects/IICPC/artifacts/api-server/src/lib/marketDataFetcher.ts) | Phase 2.2 Alpha Vantage/Polygon/synthetic OHLCV fetcher and cache seeder |
+| [artifacts/api-server/src/lib/executionSimulator.ts](/Users/shaarav/Documents/GitHub_Projects/IICPC/artifacts/api-server/src/lib/executionSimulator.ts) | Phase 2.3 historical trade simulator for execution scoring |
 | [artifacts/api-server/src/routes/marketData.ts](/Users/shaarav/Documents/GitHub_Projects/IICPC/artifacts/api-server/src/routes/marketData.ts) | Phase 1.2 market-data cache trigger route |
 | [artifacts/api-server/src/routes/paperTrading.ts](/Users/shaarav/Documents/GitHub_Projects/IICPC/artifacts/api-server/src/routes/paperTrading.ts) | Phase 1.2 paper-trading simulation route |
 
@@ -93,6 +95,10 @@ Phase 1.3 adds [orchestrator.ts](/Users/shaarav/Documents/GitHub_Projects/IICPC/
 Phase 1.4 adds [technicalBot.ts](/Users/shaarav/Documents/GitHub_Projects/IICPC/artifacts/api-server/src/lib/bots/technicalBot.ts), which defines the 20 technical analysis metrics in grouped bot configs. The current evaluator is deterministic and data-shape-ready, so real OHLCV-backed calculations can replace the scoring function without changing the orchestrator contract.
 
 Phase 2.1 adds [fundamentalBot.ts](/Users/shaarav/Documents/GitHub_Projects/IICPC/artifacts/api-server/src/lib/bots/fundamentalBot.ts) and [sentimentBot.ts](/Users/shaarav/Documents/GitHub_Projects/IICPC/artifacts/api-server/src/lib/bots/sentimentBot.ts). Fundamental bots filter technically approved assets through 20 validation metrics. Sentiment bots score the surviving assets with 15 weighted methods; the normalized sentiment score is the first leaderboard score column.
+
+Phase 2.2 adds [marketDataFetcher.ts](/Users/shaarav/Documents/GitHub_Projects/IICPC/artifacts/api-server/src/lib/marketDataFetcher.ts). It fetches and caches OHLCV bars from Polygon when `POLYGON_API_KEY` is set, Alpha Vantage when `ALPHA_VANTAGE_API_KEY` is set, and otherwise falls back to deterministic synthetic data for local demos. It supports daily and intraday-style intervals such as `5min`, and exposes a top-100 stock seed helper.
+
+Phase 2.3 adds [executionSimulator.ts](/Users/shaarav/Documents/GitHub_Projects/IICPC/artifacts/api-server/src/lib/executionSimulator.ts). It fetches daily and intraday bars, samples five intraday trades plus short, medium, and long horizon trades, calculates max return, Sharpe ratio, max drawdown, win rate, and profit factor, then normalizes those into the execution score. This is the second leaderboard score column.
 
 | Endpoint | File | Purpose |
 |---|---|---|
