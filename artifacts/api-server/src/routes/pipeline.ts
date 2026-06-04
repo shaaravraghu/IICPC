@@ -14,6 +14,8 @@ const INFRA_CONFIG = {
   orchestrator: process.env.ORCHESTRATOR ?? "swarm",
 };
 
+type ComponentStatus = "healthy" | "degraded" | "down";
+
 function simulatedComponents() {
   const transport = INFRA_CONFIG.messageTransport === "kafka" ? "Kafka" : "NATS";
   const orchestrator = INFRA_CONFIG.orchestrator === "kubernetes" ? "Kubernetes" : "Docker Swarm";
@@ -21,11 +23,11 @@ function simulatedComponents() {
   const bot_label = INFRA_CONFIG.messageTransport === "kafka" ? "Rust Bots" : "Go Bots";
 
   return [
-    { name: transport, status: "healthy" as const, description: "Message broker — order events", latencyMs: 0.4, throughput: 850000 },
-    { name: orchestrator, status: "healthy" as const, description: "Container orchestration", latencyMs: 1.2, throughput: null },
-    { name: db_label, status: "healthy" as const, description: "Time-series analytics store", latencyMs: 2.1, throughput: 120000 },
-    { name: bot_label, status: "healthy" as const, description: "Synthetic market participants", latencyMs: null, throughput: 72000 },
-    { name: "Scoring Engine", status: "healthy" as const, description: "Composite score computation", latencyMs: 8.5, throughput: null },
+    { name: transport, status: "healthy" as ComponentStatus, description: "Message broker — order events", latencyMs: 0.4, throughput: 850000 },
+    { name: orchestrator, status: "healthy" as ComponentStatus, description: "Container orchestration", latencyMs: 1.2, throughput: null },
+    { name: db_label, status: "healthy" as ComponentStatus, description: "Time-series analytics store", latencyMs: 2.1, throughput: 120000 },
+    { name: bot_label, status: "healthy" as ComponentStatus, description: "Synthetic market participants", latencyMs: null, throughput: 72000 },
+    { name: "Scoring Engine", status: "healthy" as ComponentStatus, description: "Composite score computation", latencyMs: 8.5, throughput: null },
   ];
 }
 

@@ -76,6 +76,51 @@ The Rust workspace is the backend foundation for the signal platform.
 | [config/bot_weights.yaml](/Users/shaarav/Documents/GitHub_Projects/IICPC/config/bot_weights.yaml) | Group weights and leaderboard scoring weights |
 | [config/kafka_topics.yaml](/Users/shaarav/Documents/GitHub_Projects/IICPC/config/kafka_topics.yaml) | Topic topology for the distributed pipeline |
 | [infrastructure/scripts/deploy.sh](/Users/shaarav/Documents/GitHub_Projects/IICPC/infrastructure/scripts/deploy.sh) | Deployment entrypoint for Kubernetes scaffold |
+| [artifacts/api-server/src/routes/executions.ts](/Users/shaarav/Documents/GitHub_Projects/IICPC/artifacts/api-server/src/routes/executions.ts) | Phase 1.2 execution lifecycle, status, and per-run leaderboard routes |
+| [artifacts/api-server/src/lib/orchestrator.ts](/Users/shaarav/Documents/GitHub_Projects/IICPC/artifacts/api-server/src/lib/orchestrator.ts) | Phase 1.3 in-process pipeline orchestrator and virtual bot group runner |
+| [artifacts/api-server/src/routes/marketData.ts](/Users/shaarav/Documents/GitHub_Projects/IICPC/artifacts/api-server/src/routes/marketData.ts) | Phase 1.2 market-data cache trigger route |
+| [artifacts/api-server/src/routes/paperTrading.ts](/Users/shaarav/Documents/GitHub_Projects/IICPC/artifacts/api-server/src/routes/paperTrading.ts) | Phase 1.2 paper-trading simulation route |
+
+## TypeScript API Prototype
+
+Phase 1.2 adds an Express API surface under `artifacts/api-server/src/routes/`.
+
+Phase 1.3 adds [orchestrator.ts](/Users/shaarav/Documents/GitHub_Projects/IICPC/artifacts/api-server/src/lib/orchestrator.ts), which runs the route-triggered pipeline as sequential layers. Each technical, fundamental, and sentiment layer starts multiple virtual bot groups concurrently, stores bot events, aggregates pass/fail results by asset, and updates the detailed run state before passing surviving assets to the next layer.
+
+| Endpoint | File | Purpose |
+|---|---|---|
+| `POST /api/executions/start` | `executions.ts` | Creates or resets a detailed run, seeds asset scores, and starts the current route-level pipeline simulation |
+| `GET /api/executions/:testRunId/status` | `executions.ts` | Returns current layer, progress, pass counts, and average scores |
+| `GET /api/leaderboard/:testRunId` | `executions.ts` | Returns per-asset technical, fundamental, sentiment, execution, paper, and composite ranking fields |
+| `POST /api/market-data/fetch` | `marketData.ts` | Generates phase-1 synthetic OHLCV bars and stores them in `historical_prices` |
+| `POST /api/paper-trading/execute` | `paperTrading.ts` | Creates simulated paper-trade positions and updates paper/composite leaderboard scores |
+
+Example request bodies:
+
+```json
+{
+  "submission_id": "submission-123",
+  "assets_to_analyze": ["AAPL", "MSFT", "NVDA"]
+}
+```
+
+```json
+{
+  "symbol_list": "AAPL,MSFT,NVDA",
+  "date_range": { "start": "2026-01-01", "end": "2026-01-31" },
+  "interval": "daily"
+}
+```
+
+```json
+{
+  "test_run_id": "run-123",
+  "initial_capital": 100000,
+  "timeline": "7d"
+}
+```
+
+Before running these routes locally, set `DATABASE_URL` and push the Drizzle schema so the Phase 1.1 tables exist in Postgres.
 
 ## How To Read The Code
 
