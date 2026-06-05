@@ -5,8 +5,18 @@ license.workspace = true
 version.workspace = true
 
 [dependencies]
-eval-algorithms = { path = "../../libs/eval-algorithms" }
 platform-types = { path = "../../libs/platform-types" }
+eval-algorithms = { path = "../../libs/eval-algorithms" }
+kafka-utils = { path = "../../libs/kafka-utils" }
+db-client = { path = "../../libs/db-client" }
+tokio = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+axum = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+uuid = { workspace = true }
+chrono = { workspace = true }
 
 [[bin]]
 name = "execution-sim"

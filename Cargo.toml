@@ -5,6 +5,7 @@ members = [
   "libs/eval-algorithms",
   "libs/strategy-parser",
   "libs/kafka-utils",
+  "libs/db-client",
   "services/api-gateway",
   "services/technical-agents",
   "services/fundamental-agents",
@@ -18,3 +19,18 @@ members = [
 edition = "2021"
 license = "MIT"
 version = "0.1.0"
+
+[workspace.dependencies]
+tokio = { version = "1.35", features = ["full"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+serde_yaml = "0.9"
+rdkafka = { version = "0.36", features = ["tokio", "cmake-build"] }
+tokio-postgres = { version = "0.7", features = ["with-chrono-0_4", "with-serde_json-1"] }
+deadpool-postgres = { version = "0.12", features = ["serde"] }
+axum = { version = "0.7", features = ["ws"] }
+tower-http = { version = "0.5", features = ["cors", "fs"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+uuid = { version = "1.6", features = ["v4", "serde"] }
+chrono = { version = "0.4", features = ["serde"] }

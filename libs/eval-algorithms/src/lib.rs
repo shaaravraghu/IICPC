@@ -1,20 +1,11 @@
 use platform_types::{
-<<<<<<< HEAD
-    FunctionParamDef, MarketCandle, PaperTradingResult, RankedAsset, TechnicalMetricDefinition,
-    TradeHorizon, TradeSimulationResult,
-=======
     FundamentalMetricDefinition, FunctionParamDef, MarketCandle, PaperTradingResult, RankedAsset,
-<<<<<<< HEAD
-<<<<<<< HEAD
-    TechnicalMetricDefinition, TradeHorizon, TradeSimulationResult,
->>>>>>> f181a9b (Fundamental Analysis Metrics Functions Re-defining)
-=======
     SentimentMetricDefinition, TechnicalMetricDefinition, TradeHorizon, TradeSimulationResult,
->>>>>>> 912eccc (Creating Agentic AI to create sentiment analysis metrics)
-=======
-    SentimentMetricDefinition, TechnicalMetricDefinition, TradeHorizon, TradeSimulationResult,
->>>>>>> 5378fc4 (Initial Launch Testing)
 };
+
+// ---------------------------------------------------------------------------
+// Shared parameter definitions
+// ---------------------------------------------------------------------------
 
 const PRICE_SERIES_PARAM: FunctionParamDef = FunctionParamDef {
     name: "prices",
@@ -107,8 +98,8 @@ const NEW_LOWS_PARAM: FunctionParamDef = FunctionParamDef {
     optional: false,
 };
 
-<<<<<<< HEAD
-=======
+// --- Fundamental params ---
+
 const REVENUE_PARAM: FunctionParamDef = FunctionParamDef {
     name: "revenue",
     type_name: "f64",
@@ -172,12 +163,8 @@ const FUNDAMENTAL_PERIOD_PARAM: FunctionParamDef = FunctionParamDef {
     optional: true,
 };
 
-<<<<<<< HEAD
-<<<<<<< HEAD
->>>>>>> f181a9b (Fundamental Analysis Metrics Functions Re-defining)
-=======
-=======
->>>>>>> 5378fc4 (Initial Launch Testing)
+// --- Sentiment params ---
+
 const SYMBOL_PARAM: FunctionParamDef = FunctionParamDef {
     name: "symbol",
     type_name: "&str",
@@ -185,8 +172,6 @@ const SYMBOL_PARAM: FunctionParamDef = FunctionParamDef {
     optional: false,
 };
 
-<<<<<<< HEAD
-=======
 const EVIDENCE_PARAM: FunctionParamDef = FunctionParamDef {
     name: "evidence",
     type_name: "SentimentEvidence",
@@ -194,7 +179,6 @@ const EVIDENCE_PARAM: FunctionParamDef = FunctionParamDef {
     optional: false,
 };
 
->>>>>>> 5378fc4 (Initial Launch Testing)
 const LOOKBACK_DAYS_PARAM: FunctionParamDef = FunctionParamDef {
     name: "lookback_days",
     type_name: "usize",
@@ -202,17 +186,10 @@ const LOOKBACK_DAYS_PARAM: FunctionParamDef = FunctionParamDef {
     optional: true,
 };
 
-<<<<<<< HEAD
-const EVIDENCE_PARAM: FunctionParamDef = FunctionParamDef {
-    name: "evidence",
-    type_name: "SentimentEvidence",
-    description: "Normalized evidence bundle for the sentiment method",
-    optional: false,
-};
+// ===========================================================================
+// Metric Catalogs
+// ===========================================================================
 
->>>>>>> 912eccc (Creating Agentic AI to create sentiment analysis metrics)
-=======
->>>>>>> 5378fc4 (Initial Launch Testing)
 pub fn technical_metric_catalog() -> Vec<TechnicalMetricDefinition> {
     vec![
         TechnicalMetricDefinition {
@@ -410,649 +387,56 @@ pub fn technical_metric_catalog() -> Vec<TechnicalMetricDefinition> {
         },
     ]
 }
-<<<<<<< HEAD
-=======
 
 pub fn fundamental_metric_catalog() -> Vec<FundamentalMetricDefinition> {
     vec![
-        FundamentalMetricDefinition {
-            key: "revenue_growth_rate",
-            display_name: "Revenue Growth Rate",
-            validates: "Demand growth",
-            description: "Compares current revenue to a prior comparable period to validate whether demand is expanding.",
-            signature: "revenue_growth_rate(revenue: f64, prior_revenue: f64, period?: ReportingPeriod) -> f64",
-            returns: "Revenue growth percentage",
-            params: &[REVENUE_PARAM, PRIOR_REVENUE_PARAM, FUNDAMENTAL_PERIOD_PARAM],
-        },
-        FundamentalMetricDefinition {
-            key: "organic_revenue_growth",
-            display_name: "Organic Revenue Growth",
-            validates: "True growth vs acquisitions",
-            description: "Adjusts reported revenue growth for acquired revenue, divestitures, and currency effects to isolate underlying growth.",
-            signature: "organic_revenue_growth(revenue: f64, prior_revenue: f64, acquired_revenue?: f64, fx_impact?: f64) -> f64",
-            returns: "Organic revenue growth percentage",
-            params: &[REVENUE_PARAM, PRIOR_REVENUE_PARAM],
-        },
-        FundamentalMetricDefinition {
-            key: "gross_margin",
-            display_name: "Gross Margin",
-            validates: "Pricing power and moat",
-            description: "Measures how much revenue remains after direct production costs, revealing pricing power and business quality.",
-            signature: "gross_margin(gross_profit: f64, revenue: f64) -> f64",
-            returns: "Gross margin percentage",
-            params: &[GROSS_PROFIT_PARAM, REVENUE_PARAM],
-        },
-        FundamentalMetricDefinition {
-            key: "operating_margin",
-            display_name: "Operating Margin",
-            validates: "Operational efficiency",
-            description: "Shows how efficiently the company turns revenue into operating income before financing and tax effects.",
-            signature: "operating_margin(operating_income: f64, revenue: f64) -> f64",
-            returns: "Operating margin percentage",
-            params: &[OPERATING_INCOME_PARAM, REVENUE_PARAM],
-        },
-        FundamentalMetricDefinition {
-            key: "free_cash_flow_margin",
-            display_name: "Free Cash Flow Margin",
-            validates: "Ability to convert revenue into cash",
-            description: "Measures how much revenue becomes free cash flow after operating and capital requirements.",
-            signature: "free_cash_flow_margin(free_cash_flow: f64, revenue: f64) -> f64",
-            returns: "Free cash flow margin percentage",
-            params: &[FREE_CASH_FLOW_PARAM, REVENUE_PARAM],
-        },
-        FundamentalMetricDefinition {
-            key: "return_on_invested_capital",
-            display_name: "Return on Invested Capital (ROIC)",
-            validates: "Capital efficiency",
-            description: "Measures how efficiently invested capital is converted into after-tax operating profit.",
-            signature: "return_on_invested_capital(nopat: f64, invested_capital: f64) -> f64",
-            returns: "ROIC percentage",
-            params: &[
-                FunctionParamDef {
-                    name: "nopat",
-                    type_name: "f64",
-                    description: "Net operating profit after tax",
-                    optional: false,
-                },
-                FunctionParamDef {
-                    name: "invested_capital",
-                    type_name: "f64",
-                    description: "Debt plus equity capital invested in operations",
-                    optional: false,
-                },
-            ],
-        },
-        FundamentalMetricDefinition {
-            key: "return_on_equity",
-            display_name: "Return on Equity (ROE)",
-            validates: "Shareholder value creation",
-            description: "Measures how effectively shareholder equity is used to generate net income.",
-            signature: "return_on_equity(net_income: f64, shareholder_equity: f64) -> f64",
-            returns: "ROE percentage",
-            params: &[
-                NET_INCOME_PARAM,
-                FunctionParamDef {
-                    name: "shareholder_equity",
-                    type_name: "f64",
-                    description: "Book value of common shareholder equity",
-                    optional: false,
-                },
-            ],
-        },
-        FundamentalMetricDefinition {
-            key: "return_on_assets",
-            display_name: "Return on Assets (ROA)",
-            validates: "Asset productivity",
-            description: "Measures how effectively total assets are used to produce earnings.",
-            signature: "return_on_assets(net_income: f64, total_assets: f64) -> f64",
-            returns: "ROA percentage",
-            params: &[
-                NET_INCOME_PARAM,
-                FunctionParamDef {
-                    name: "total_assets",
-                    type_name: "f64",
-                    description: "Total assets from the balance sheet",
-                    optional: false,
-                },
-            ],
-        },
-        FundamentalMetricDefinition {
-            key: "free_cash_flow_growth",
-            display_name: "Free Cash Flow Growth",
-            validates: "Sustainability of business expansion",
-            description: "Compares current free cash flow to a prior period to validate whether expansion is translating into cash.",
-            signature: "free_cash_flow_growth(free_cash_flow: f64, prior_free_cash_flow: f64, period?: ReportingPeriod) -> f64",
-            returns: "Free cash flow growth percentage",
-            params: &[
-                FREE_CASH_FLOW_PARAM,
-                FunctionParamDef {
-                    name: "prior_free_cash_flow",
-                    type_name: "f64",
-                    description: "Comparable prior period free cash flow",
-                    optional: false,
-                },
-                FUNDAMENTAL_PERIOD_PARAM,
-            ],
-        },
-        FundamentalMetricDefinition {
-            key: "earnings_quality_ratio",
-            display_name: "Earnings Quality Ratio",
-            validates: "Quality of reported earnings",
-            description: "Compares operating cash flow or free cash flow against net income to identify low-quality accrual-driven earnings.",
-            signature: "earnings_quality_ratio(operating_cash_flow: f64, net_income: f64) -> f64",
-            returns: "Cash earnings quality ratio",
-            params: &[
-                FunctionParamDef {
-                    name: "operating_cash_flow",
-                    type_name: "f64",
-                    description: "Cash generated from operations",
-                    optional: false,
-                },
-                NET_INCOME_PARAM,
-            ],
-        },
-        FundamentalMetricDefinition {
-            key: "debt_to_ebitda",
-            display_name: "Debt-to-EBITDA",
-            validates: "Leverage risk",
-            description: "Measures debt load relative to operating earnings capacity.",
-            signature: "debt_to_ebitda(total_debt: f64, ebitda: f64) -> f64",
-            returns: "Debt-to-EBITDA multiple",
-            params: &[TOTAL_DEBT_PARAM, EBITDA_PARAM],
-        },
-        FundamentalMetricDefinition {
-            key: "interest_coverage_ratio",
-            display_name: "Interest Coverage Ratio",
-            validates: "Debt servicing ability",
-            description: "Measures whether operating income can comfortably cover interest expense.",
-            signature: "interest_coverage_ratio(ebit: f64, interest_expense: f64) -> f64",
-            returns: "Interest coverage multiple",
-            params: &[
-                FunctionParamDef {
-                    name: "ebit",
-                    type_name: "f64",
-                    description: "Earnings before interest and taxes",
-                    optional: false,
-                },
-                FunctionParamDef {
-                    name: "interest_expense",
-                    type_name: "f64",
-                    description: "Interest expense for the same period",
-                    optional: false,
-                },
-            ],
-        },
-        FundamentalMetricDefinition {
-            key: "current_ratio",
-            display_name: "Current Ratio",
-            validates: "Short-term financial health",
-            description: "Compares current assets against current liabilities to validate near-term liquidity.",
-            signature: "current_ratio(current_assets: f64, current_liabilities: f64) -> f64",
-            returns: "Current ratio multiple",
-            params: &[
-                FunctionParamDef {
-                    name: "current_assets",
-                    type_name: "f64",
-                    description: "Assets expected to convert to cash within one year",
-                    optional: false,
-                },
-                FunctionParamDef {
-                    name: "current_liabilities",
-                    type_name: "f64",
-                    description: "Obligations due within one year",
-                    optional: false,
-                },
-            ],
-        },
-        FundamentalMetricDefinition {
-            key: "share_dilution_rate",
-            display_name: "Share Dilution Rate",
-            validates: "Management alignment",
-            description: "Measures whether share count is increasing in a way that dilutes existing holders.",
-            signature: "share_dilution_rate(shares_outstanding: f64, prior_shares_outstanding: f64) -> f64",
-            returns: "Share dilution percentage",
-            params: &[
-                FunctionParamDef {
-                    name: "shares_outstanding",
-                    type_name: "f64",
-                    description: "Current diluted shares outstanding",
-                    optional: false,
-                },
-                FunctionParamDef {
-                    name: "prior_shares_outstanding",
-                    type_name: "f64",
-                    description: "Prior comparable diluted shares outstanding",
-                    optional: false,
-                },
-            ],
-        },
-        FundamentalMetricDefinition {
-            key: "insider_ownership_trend",
-            display_name: "Insider Ownership Trend",
-            validates: "Management conviction",
-            description: "Tracks whether insider ownership is increasing or decreasing over time.",
-            signature: "insider_ownership_trend(insider_ownership_pct: f64, prior_insider_ownership_pct: f64) -> f64",
-            returns: "Change in insider ownership percentage points",
-            params: &[
-                FunctionParamDef {
-                    name: "insider_ownership_pct",
-                    type_name: "f64",
-                    description: "Current insider ownership percentage",
-                    optional: false,
-                },
-                FunctionParamDef {
-                    name: "prior_insider_ownership_pct",
-                    type_name: "f64",
-                    description: "Prior comparable insider ownership percentage",
-                    optional: false,
-                },
-            ],
-        },
-        FundamentalMetricDefinition {
-            key: "customer_concentration",
-            display_name: "Customer Concentration",
-            validates: "Revenue risk",
-            description: "Measures the percentage of revenue dependent on the largest customers.",
-            signature: "customer_concentration(top_customer_revenue: f64, revenue: f64) -> f64",
-            returns: "Customer concentration percentage",
-            params: &[
-                FunctionParamDef {
-                    name: "top_customer_revenue",
-                    type_name: "f64",
-                    description: "Revenue from the largest customer or customer group",
-                    optional: false,
-                },
-                REVENUE_PARAM,
-            ],
-        },
-        FundamentalMetricDefinition {
-            key: "research_and_development_intensity",
-            display_name: "R&D Intensity",
-            validates: "Future innovation pipeline",
-            description: "Measures research and development spend relative to revenue.",
-            signature: "research_and_development_intensity(r_and_d_expense: f64, revenue: f64) -> f64",
-            returns: "R&D intensity percentage",
-            params: &[
-                FunctionParamDef {
-                    name: "r_and_d_expense",
-                    type_name: "f64",
-                    description: "Research and development expense",
-                    optional: false,
-                },
-                REVENUE_PARAM,
-            ],
-        },
-        FundamentalMetricDefinition {
-            key: "revenue_per_employee",
-            display_name: "Revenue per Employee",
-            validates: "Organizational efficiency",
-            description: "Measures how efficiently the organization converts headcount into revenue.",
-            signature: "revenue_per_employee(revenue: f64, employee_count: f64) -> f64",
-            returns: "Revenue per employee",
-            params: &[
-                REVENUE_PARAM,
-                FunctionParamDef {
-                    name: "employee_count",
-                    type_name: "f64",
-                    description: "Current employee count",
-                    optional: false,
-                },
-            ],
-        },
-        FundamentalMetricDefinition {
-            key: "enterprise_value_to_free_cash_flow",
-            display_name: "EV/FCF Ratio",
-            validates: "Cash-based valuation",
-            description: "Compares enterprise value to free cash flow to validate whether valuation is supported by cash generation.",
-            signature: "enterprise_value_to_free_cash_flow(enterprise_value: f64, free_cash_flow: f64) -> f64",
-            returns: "EV/FCF multiple",
-            params: &[
-                FunctionParamDef {
-                    name: "enterprise_value",
-                    type_name: "f64",
-                    description: "Market capitalization plus debt minus cash",
-                    optional: false,
-                },
-                FREE_CASH_FLOW_PARAM,
-            ],
-        },
-        FundamentalMetricDefinition {
-            key: "peg_ratio",
-            display_name: "PEG Ratio",
-            validates: "Whether growth justifies valuation",
-            description: "Compares price-to-earnings multiple against earnings growth to judge growth-adjusted valuation.",
-            signature: "peg_ratio(price_to_earnings: f64, earnings_growth_rate: f64) -> f64",
-            returns: "PEG ratio",
-            params: &[
-                FunctionParamDef {
-                    name: "price_to_earnings",
-                    type_name: "f64",
-                    description: "Current P/E multiple",
-                    optional: false,
-                },
-                FunctionParamDef {
-                    name: "earnings_growth_rate",
-                    type_name: "f64",
-                    description: "Expected or realized earnings growth percentage",
-                    optional: false,
-                },
-            ],
-        },
-    ]
-}
->>>>>>> f181a9b (Fundamental Analysis Metrics Functions Re-defining)
-
-pub fn sentiment_metric_catalog() -> Vec<SentimentMetricDefinition> {
-    vec![
-        SentimentMetricDefinition {
-            key: "news_sentiment_analysis",
-            display_name: "News Sentiment Analysis",
-            measures: "Positive/negative tone in financial news articles",
-            description: "Scores financial news tone, article credibility, recency, and event severity for the shortlisted asset.",
-            signal_sources: &["financial news APIs", "issuer press releases", "wire services"],
-            signature: "news_sentiment_analysis(symbol: &str, evidence: SentimentEvidence, lookback_days?: usize) -> f64",
-            returns: "Segment score from -5 to +5",
-            params: &[SYMBOL_PARAM, EVIDENCE_PARAM, LOOKBACK_DAYS_PARAM],
-        },
-        SentimentMetricDefinition {
-            key: "social_media_sentiment",
-            display_name: "Social Media Sentiment",
-            measures: "Public opinion from X, Reddit, LinkedIn, Facebook, etc.",
-            description: "Aggregates social posts by source credibility, reach, engagement, bot-likelihood, and stance.",
-            signal_sources: &["X", "Reddit", "LinkedIn", "Facebook", "public social firehose"],
-            signature: "social_media_sentiment(symbol: &str, evidence: SentimentEvidence, lookback_days?: usize) -> f64",
-            returns: "Segment score from -5 to +5",
-            params: &[SYMBOL_PARAM, EVIDENCE_PARAM, LOOKBACK_DAYS_PARAM],
-        },
-        SentimentMetricDefinition {
-            key: "search_trend_analysis",
-            display_name: "Search Trend Analysis",
-            measures: "Rising interest using search volume data",
-            description: "Scores abnormal search interest, query quality, and whether attention is positive, negative, or speculative.",
-            signal_sources: &["Google Trends", "search-volume providers", "keyword intelligence APIs"],
-            signature: "search_trend_analysis(symbol: &str, evidence: SentimentEvidence, lookback_days?: usize) -> f64",
-            returns: "Segment score from -5 to +5",
-            params: &[SYMBOL_PARAM, EVIDENCE_PARAM, LOOKBACK_DAYS_PARAM],
-        },
-        SentimentMetricDefinition {
-            key: "options_market_sentiment",
-            display_name: "Options Market Sentiment",
-            measures: "Expectations implied by options traders",
-            description: "Evaluates put/call skew, implied volatility shifts, unusual activity, and directional premium demand.",
-            signal_sources: &["options chains", "put/call ratios", "implied volatility surfaces", "unusual options flow"],
-            signature: "options_market_sentiment(symbol: &str, evidence: SentimentEvidence, lookback_days?: usize) -> f64",
-            returns: "Segment score from -5 to +5",
-            params: &[SYMBOL_PARAM, EVIDENCE_PARAM, LOOKBACK_DAYS_PARAM],
-        },
-        SentimentMetricDefinition {
-            key: "institutional_fund_flow_analysis",
-            display_name: "Institutional Fund Flow Analysis",
-            measures: "Where large investors are moving capital",
-            description: "Scores ETF flows, block trades, ownership changes, and institutional accumulation/distribution signals.",
-            signal_sources: &["fund flow feeds", "13F filings", "block trade data", "ETF flow data"],
-            signature: "institutional_fund_flow_analysis(symbol: &str, evidence: SentimentEvidence, lookback_days?: usize) -> f64",
-            returns: "Segment score from -5 to +5",
-            params: &[SYMBOL_PARAM, EVIDENCE_PARAM, LOOKBACK_DAYS_PARAM],
-        },
-        SentimentMetricDefinition {
-            key: "analyst_rating_sentiment",
-            display_name: "Analyst Rating Sentiment",
-            measures: "Upgrades, downgrades, and target-price revisions",
-            description: "Scores analyst action direction, magnitude, analyst quality, consensus drift, and target-price changes.",
-            signal_sources: &["analyst ratings", "target-price revisions", "broker research summaries"],
-            signature: "analyst_rating_sentiment(symbol: &str, evidence: SentimentEvidence, lookback_days?: usize) -> f64",
-            returns: "Segment score from -5 to +5",
-            params: &[SYMBOL_PARAM, EVIDENCE_PARAM, LOOKBACK_DAYS_PARAM],
-        },
-        SentimentMetricDefinition {
-            key: "earnings_call_sentiment",
-            display_name: "Earnings Call Sentiment",
-            measures: "Management confidence and tone during earnings calls",
-            description: "Scores management tone, uncertainty, forward-looking confidence, Q&A pressure, and guidance language.",
-            signal_sources: &["earnings call transcripts", "prepared remarks", "Q&A transcripts", "guidance updates"],
-            signature: "earnings_call_sentiment(symbol: &str, evidence: SentimentEvidence, lookback_days?: usize) -> f64",
-            returns: "Segment score from -5 to +5",
-            params: &[SYMBOL_PARAM, EVIDENCE_PARAM, LOOKBACK_DAYS_PARAM],
-        },
-        SentimentMetricDefinition {
-            key: "insider_trading_analysis",
-            display_name: "Insider Trading Analysis",
-            measures: "Actions of executives and directors",
-            description: "Scores insider buying/selling direction, size, role seniority, timing, and recurrence.",
-            signal_sources: &["Form 4 filings", "insider transaction feeds", "director/officer ownership reports"],
-            signature: "insider_trading_analysis(symbol: &str, evidence: SentimentEvidence, lookback_days?: usize) -> f64",
-            returns: "Segment score from -5 to +5",
-            params: &[SYMBOL_PARAM, EVIDENCE_PARAM, LOOKBACK_DAYS_PARAM],
-        },
-        SentimentMetricDefinition {
-            key: "technical_sentiment_indicators",
-            display_name: "Technical Sentiment Indicators",
-            measures: "Market psychology reflected in price behavior",
-            description: "Converts crowd psychology from technical evidence such as breadth, volatility, squeezes, capitulation, and trend persistence.",
-            signal_sources: &["technical metric outputs", "market breadth", "volatility metrics", "price action"],
-            signature: "technical_sentiment_indicators(symbol: &str, evidence: SentimentEvidence, lookback_days?: usize) -> f64",
-            returns: "Segment score from -5 to +5",
-            params: &[SYMBOL_PARAM, EVIDENCE_PARAM, LOOKBACK_DAYS_PARAM],
-        },
-        SentimentMetricDefinition {
-            key: "consumer_review_sentiment",
-            display_name: "Consumer Review Sentiment",
-            measures: "Customer opinions about products/services",
-            description: "Scores product review tone, rating velocity, complaint themes, and customer satisfaction shifts.",
-            signal_sources: &["app store reviews", "e-commerce reviews", "product forums", "customer survey sources"],
-            signature: "consumer_review_sentiment(symbol: &str, evidence: SentimentEvidence, lookback_days?: usize) -> f64",
-            returns: "Segment score from -5 to +5",
-            params: &[SYMBOL_PARAM, EVIDENCE_PARAM, LOOKBACK_DAYS_PARAM],
-        },
-        SentimentMetricDefinition {
-            key: "supply_chain_sentiment",
-            display_name: "Supply Chain Sentiment",
-            measures: "Signals from suppliers, logistics, and manufacturing",
-            description: "Scores delivery delays, supplier commentary, inventory stress, logistics signals, and manufacturing momentum.",
-            signal_sources: &["supplier news", "shipping data", "inventory data", "manufacturing reports"],
-            signature: "supply_chain_sentiment(symbol: &str, evidence: SentimentEvidence, lookback_days?: usize) -> f64",
-            returns: "Segment score from -5 to +5",
-            params: &[SYMBOL_PARAM, EVIDENCE_PARAM, LOOKBACK_DAYS_PARAM],
-        },
-        SentimentMetricDefinition {
-            key: "influencer_community_forum_analysis",
-            display_name: "Influencer, Community & Forum Analysis",
-            measures: "Deep discussions from niche communities",
-            description: "Scores expert community conviction, discussion depth, source reputation, and narrative formation.",
-            signal_sources: &["specialist forums", "Substack", "Discord communities", "influencer commentary"],
-            signature: "influencer_community_forum_analysis(symbol: &str, evidence: SentimentEvidence, lookback_days?: usize) -> f64",
-            returns: "Segment score from -5 to +5",
-            params: &[SYMBOL_PARAM, EVIDENCE_PARAM, LOOKBACK_DAYS_PARAM],
-        },
-        SentimentMetricDefinition {
-            key: "macroeconomic_sentiment_analysis",
-            display_name: "Macroeconomic Sentiment Analysis",
-            measures: "Sentiment implied by economic indicators",
-            description: "Scores macro backdrop friendliness using rates, inflation, growth, employment, policy, and sector sensitivity.",
-            signal_sources: &["economic releases", "central bank statements", "rates data", "inflation data"],
-            signature: "macroeconomic_sentiment_analysis(symbol: &str, evidence: SentimentEvidence, lookback_days?: usize) -> f64",
-            returns: "Segment score from -5 to +5",
-            params: &[SYMBOL_PARAM, EVIDENCE_PARAM, LOOKBACK_DAYS_PARAM],
-        },
-        SentimentMetricDefinition {
-            key: "alternative_data_sentiment",
-            display_name: "Alternative Data Sentiment",
-            measures: "Real-world behavioral signals",
-            description: "Scores non-traditional behavior signals such as foot traffic, app usage, web traffic, card spend, and satellite activity.",
-            signal_sources: &["app usage", "web traffic", "card spend", "geolocation", "satellite or sensor data"],
-            signature: "alternative_data_sentiment(symbol: &str, evidence: SentimentEvidence, lookback_days?: usize) -> f64",
-            returns: "Segment score from -5 to +5",
-            params: &[SYMBOL_PARAM, EVIDENCE_PARAM, LOOKBACK_DAYS_PARAM],
-        },
-        SentimentMetricDefinition {
-            key: "prediction_market_analysis",
-            display_name: "Prediction Market Analysis",
-            measures: "What people are willing to bet on happening",
-            description: "Scores market-implied probability shifts from prediction, event, or betting markets tied to company outcomes.",
-            signal_sources: &["prediction markets", "event markets", "betting odds", "probability markets"],
-            signature: "prediction_market_analysis(symbol: &str, evidence: SentimentEvidence, lookback_days?: usize) -> f64",
-            returns: "Segment score from -5 to +5",
-            params: &[SYMBOL_PARAM, EVIDENCE_PARAM, LOOKBACK_DAYS_PARAM],
-        },
+        FundamentalMetricDefinition { key: "revenue_growth_rate", display_name: "Revenue Growth Rate", validates: "Demand growth", description: "Compares current revenue to a prior comparable period to validate whether demand is expanding.", signature: "revenue_growth_rate(revenue: f64, prior_revenue: f64, period?: ReportingPeriod) -> f64", returns: "Revenue growth percentage", params: &[REVENUE_PARAM, PRIOR_REVENUE_PARAM, FUNDAMENTAL_PERIOD_PARAM] },
+        FundamentalMetricDefinition { key: "organic_revenue_growth", display_name: "Organic Revenue Growth", validates: "True growth vs acquisitions", description: "Adjusts reported revenue growth for acquired revenue, divestitures, and currency effects to isolate underlying growth.", signature: "organic_revenue_growth(revenue: f64, prior_revenue: f64, acquired_revenue?: f64, fx_impact?: f64) -> f64", returns: "Organic revenue growth percentage", params: &[REVENUE_PARAM, PRIOR_REVENUE_PARAM] },
+        FundamentalMetricDefinition { key: "gross_margin", display_name: "Gross Margin", validates: "Pricing power and moat", description: "Measures how much revenue remains after direct production costs, revealing pricing power and business quality.", signature: "gross_margin(gross_profit: f64, revenue: f64) -> f64", returns: "Gross margin percentage", params: &[GROSS_PROFIT_PARAM, REVENUE_PARAM] },
+        FundamentalMetricDefinition { key: "operating_margin", display_name: "Operating Margin", validates: "Operational efficiency", description: "Shows how efficiently the company turns revenue into operating income before financing and tax effects.", signature: "operating_margin(operating_income: f64, revenue: f64) -> f64", returns: "Operating margin percentage", params: &[OPERATING_INCOME_PARAM, REVENUE_PARAM] },
+        FundamentalMetricDefinition { key: "free_cash_flow_margin", display_name: "Free Cash Flow Margin", validates: "Ability to convert revenue into cash", description: "Measures how much revenue becomes free cash flow after operating and capital requirements.", signature: "free_cash_flow_margin(free_cash_flow: f64, revenue: f64) -> f64", returns: "Free cash flow margin percentage", params: &[FREE_CASH_FLOW_PARAM, REVENUE_PARAM] },
+        FundamentalMetricDefinition { key: "return_on_invested_capital", display_name: "Return on Invested Capital (ROIC)", validates: "Capital efficiency", description: "Measures how efficiently invested capital is converted into after-tax operating profit.", signature: "return_on_invested_capital(nopat: f64, invested_capital: f64) -> f64", returns: "ROIC percentage", params: &[FunctionParamDef { name: "nopat", type_name: "f64", description: "Net operating profit after tax", optional: false }, FunctionParamDef { name: "invested_capital", type_name: "f64", description: "Debt plus equity capital invested in operations", optional: false }] },
+        FundamentalMetricDefinition { key: "return_on_equity", display_name: "Return on Equity (ROE)", validates: "Shareholder value creation", description: "Measures how effectively shareholder equity is used to generate net income.", signature: "return_on_equity(net_income: f64, shareholder_equity: f64) -> f64", returns: "ROE percentage", params: &[NET_INCOME_PARAM, FunctionParamDef { name: "shareholder_equity", type_name: "f64", description: "Book value of common shareholder equity", optional: false }] },
+        FundamentalMetricDefinition { key: "return_on_assets", display_name: "Return on Assets (ROA)", validates: "Asset productivity", description: "Measures how effectively total assets are used to produce earnings.", signature: "return_on_assets(net_income: f64, total_assets: f64) -> f64", returns: "ROA percentage", params: &[NET_INCOME_PARAM, FunctionParamDef { name: "total_assets", type_name: "f64", description: "Total assets from the balance sheet", optional: false }] },
+        FundamentalMetricDefinition { key: "free_cash_flow_growth", display_name: "Free Cash Flow Growth", validates: "Sustainability of business expansion", description: "Compares current free cash flow to a prior period to validate whether expansion is translating into cash.", signature: "free_cash_flow_growth(free_cash_flow: f64, prior_free_cash_flow: f64, period?: ReportingPeriod) -> f64", returns: "Free cash flow growth percentage", params: &[FREE_CASH_FLOW_PARAM, FunctionParamDef { name: "prior_free_cash_flow", type_name: "f64", description: "Comparable prior period free cash flow", optional: false }, FUNDAMENTAL_PERIOD_PARAM] },
+        FundamentalMetricDefinition { key: "earnings_quality_ratio", display_name: "Earnings Quality Ratio", validates: "Quality of reported earnings", description: "Compares operating cash flow or free cash flow against net income to identify low-quality accrual-driven earnings.", signature: "earnings_quality_ratio(operating_cash_flow: f64, net_income: f64) -> f64", returns: "Cash earnings quality ratio", params: &[FunctionParamDef { name: "operating_cash_flow", type_name: "f64", description: "Cash generated from operations", optional: false }, NET_INCOME_PARAM] },
+        FundamentalMetricDefinition { key: "debt_to_ebitda", display_name: "Debt-to-EBITDA", validates: "Leverage risk", description: "Measures debt load relative to operating earnings capacity.", signature: "debt_to_ebitda(total_debt: f64, ebitda: f64) -> f64", returns: "Debt-to-EBITDA multiple", params: &[TOTAL_DEBT_PARAM, EBITDA_PARAM] },
+        FundamentalMetricDefinition { key: "interest_coverage_ratio", display_name: "Interest Coverage Ratio", validates: "Debt servicing ability", description: "Measures whether operating income can comfortably cover interest expense.", signature: "interest_coverage_ratio(ebit: f64, interest_expense: f64) -> f64", returns: "Interest coverage multiple", params: &[FunctionParamDef { name: "ebit", type_name: "f64", description: "Earnings before interest and taxes", optional: false }, FunctionParamDef { name: "interest_expense", type_name: "f64", description: "Interest expense for the same period", optional: false }] },
+        FundamentalMetricDefinition { key: "current_ratio", display_name: "Current Ratio", validates: "Short-term financial health", description: "Compares current assets against current liabilities to validate near-term liquidity.", signature: "current_ratio(current_assets: f64, current_liabilities: f64) -> f64", returns: "Current ratio multiple", params: &[FunctionParamDef { name: "current_assets", type_name: "f64", description: "Assets expected to convert to cash within one year", optional: false }, FunctionParamDef { name: "current_liabilities", type_name: "f64", description: "Obligations due within one year", optional: false }] },
+        FundamentalMetricDefinition { key: "share_dilution_rate", display_name: "Share Dilution Rate", validates: "Management alignment", description: "Measures whether share count is increasing in a way that dilutes existing holders.", signature: "share_dilution_rate(shares_outstanding: f64, prior_shares_outstanding: f64) -> f64", returns: "Share dilution percentage", params: &[FunctionParamDef { name: "shares_outstanding", type_name: "f64", description: "Current diluted shares outstanding", optional: false }, FunctionParamDef { name: "prior_shares_outstanding", type_name: "f64", description: "Prior comparable diluted shares outstanding", optional: false }] },
+        FundamentalMetricDefinition { key: "insider_ownership_trend", display_name: "Insider Ownership Trend", validates: "Management conviction", description: "Tracks whether insider ownership is increasing or decreasing over time.", signature: "insider_ownership_trend(insider_ownership_pct: f64, prior_insider_ownership_pct: f64) -> f64", returns: "Change in insider ownership percentage points", params: &[FunctionParamDef { name: "insider_ownership_pct", type_name: "f64", description: "Current insider ownership percentage", optional: false }, FunctionParamDef { name: "prior_insider_ownership_pct", type_name: "f64", description: "Prior comparable insider ownership percentage", optional: false }] },
+        FundamentalMetricDefinition { key: "customer_concentration", display_name: "Customer Concentration", validates: "Revenue risk", description: "Measures the percentage of revenue dependent on the largest customers.", signature: "customer_concentration(top_customer_revenue: f64, revenue: f64) -> f64", returns: "Customer concentration percentage", params: &[FunctionParamDef { name: "top_customer_revenue", type_name: "f64", description: "Revenue from the largest customer or customer group", optional: false }, REVENUE_PARAM] },
+        FundamentalMetricDefinition { key: "research_and_development_intensity", display_name: "R&D Intensity", validates: "Future innovation pipeline", description: "Measures research and development spend relative to revenue.", signature: "research_and_development_intensity(r_and_d_expense: f64, revenue: f64) -> f64", returns: "R&D intensity percentage", params: &[FunctionParamDef { name: "r_and_d_expense", type_name: "f64", description: "Research and development expense", optional: false }, REVENUE_PARAM] },
+        FundamentalMetricDefinition { key: "revenue_per_employee", display_name: "Revenue per Employee", validates: "Organizational efficiency", description: "Measures how efficiently the organization converts headcount into revenue.", signature: "revenue_per_employee(revenue: f64, employee_count: f64) -> f64", returns: "Revenue per employee", params: &[REVENUE_PARAM, FunctionParamDef { name: "employee_count", type_name: "f64", description: "Current employee count", optional: false }] },
+        FundamentalMetricDefinition { key: "enterprise_value_to_free_cash_flow", display_name: "EV/FCF Ratio", validates: "Cash-based valuation", description: "Compares enterprise value to free cash flow to validate whether valuation is supported by cash generation.", signature: "enterprise_value_to_free_cash_flow(enterprise_value: f64, free_cash_flow: f64) -> f64", returns: "EV/FCF multiple", params: &[FunctionParamDef { name: "enterprise_value", type_name: "f64", description: "Market capitalization plus debt minus cash", optional: false }, FREE_CASH_FLOW_PARAM] },
+        FundamentalMetricDefinition { key: "peg_ratio", display_name: "PEG Ratio", validates: "Whether growth justifies valuation", description: "Compares price-to-earnings multiple against earnings growth to judge growth-adjusted valuation.", signature: "peg_ratio(price_to_earnings: f64, earnings_growth_rate: f64) -> f64", returns: "PEG ratio", params: &[FunctionParamDef { name: "price_to_earnings", type_name: "f64", description: "Current P/E multiple", optional: false }, FunctionParamDef { name: "earnings_growth_rate", type_name: "f64", description: "Expected or realized earnings growth percentage", optional: false }] },
     ]
 }
 
 pub fn sentiment_metric_catalog() -> Vec<SentimentMetricDefinition> {
     let params = &[SYMBOL_PARAM, EVIDENCE_PARAM, LOOKBACK_DAYS_PARAM];
-
     vec![
-        SentimentMetricDefinition {
-            key: "news_sentiment_analysis",
-            display_name: "News Sentiment Analysis",
-            measures: "Positive/negative tone in financial news articles",
-            description: "Scores financial news tone, article credibility, recency, and event severity for the shortlisted asset.",
-            signal_sources: &["financial news APIs", "issuer press releases", "wire services"],
-            signature: "news_sentiment_analysis(symbol: &str, evidence: SentimentEvidence, lookback_days?: usize) -> f64",
-            returns: "Segment score from -5 to +5",
-            params,
-        },
-        SentimentMetricDefinition {
-            key: "social_media_sentiment",
-            display_name: "Social Media Sentiment",
-            measures: "Public opinion from X, Reddit, LinkedIn, Facebook, etc.",
-            description: "Aggregates social posts by source credibility, reach, engagement, bot-likelihood, and stance.",
-            signal_sources: &["X", "Reddit", "LinkedIn", "Facebook"],
-            signature: "social_media_sentiment(symbol: &str, evidence: SentimentEvidence, lookback_days?: usize) -> f64",
-            returns: "Segment score from -5 to +5",
-            params,
-        },
-        SentimentMetricDefinition {
-            key: "search_trend_analysis",
-            display_name: "Search Trend Analysis",
-            measures: "Rising interest using search volume data",
-            description: "Scores abnormal search interest, query quality, and whether attention is positive, negative, or speculative.",
-            signal_sources: &["Google Trends", "search-volume providers", "keyword intelligence APIs"],
-            signature: "search_trend_analysis(symbol: &str, evidence: SentimentEvidence, lookback_days?: usize) -> f64",
-            returns: "Segment score from -5 to +5",
-            params,
-        },
-        SentimentMetricDefinition {
-            key: "options_market_sentiment",
-            display_name: "Options Market Sentiment",
-            measures: "Expectations implied by options traders",
-            description: "Evaluates put/call skew, implied volatility shifts, unusual activity, and directional premium demand.",
-            signal_sources: &["options chains", "put/call ratios", "implied volatility surfaces", "unusual options flow"],
-            signature: "options_market_sentiment(symbol: &str, evidence: SentimentEvidence, lookback_days?: usize) -> f64",
-            returns: "Segment score from -5 to +5",
-            params,
-        },
-        SentimentMetricDefinition {
-            key: "institutional_fund_flow_analysis",
-            display_name: "Institutional Fund Flow Analysis",
-            measures: "Where large investors are moving capital",
-            description: "Scores ETF flows, block trades, ownership changes, and institutional accumulation/distribution signals.",
-            signal_sources: &["fund flow feeds", "13F filings", "block trade data", "ETF flow data"],
-            signature: "institutional_fund_flow_analysis(symbol: &str, evidence: SentimentEvidence, lookback_days?: usize) -> f64",
-            returns: "Segment score from -5 to +5",
-            params,
-        },
-        SentimentMetricDefinition {
-            key: "analyst_rating_sentiment",
-            display_name: "Analyst Rating Sentiment",
-            measures: "Upgrades, downgrades, and target-price revisions",
-            description: "Scores analyst action direction, magnitude, analyst quality, consensus drift, and target-price changes.",
-            signal_sources: &["analyst ratings", "target-price revisions", "broker research summaries"],
-            signature: "analyst_rating_sentiment(symbol: &str, evidence: SentimentEvidence, lookback_days?: usize) -> f64",
-            returns: "Segment score from -5 to +5",
-            params,
-        },
-        SentimentMetricDefinition {
-            key: "earnings_call_sentiment",
-            display_name: "Earnings Call Sentiment",
-            measures: "Management confidence and tone during earnings calls",
-            description: "Scores management tone, uncertainty, forward-looking confidence, Q&A pressure, and guidance language.",
-            signal_sources: &["earnings call transcripts", "prepared remarks", "Q&A transcripts", "guidance updates"],
-            signature: "earnings_call_sentiment(symbol: &str, evidence: SentimentEvidence, lookback_days?: usize) -> f64",
-            returns: "Segment score from -5 to +5",
-            params,
-        },
-        SentimentMetricDefinition {
-            key: "insider_trading_analysis",
-            display_name: "Insider Trading Analysis",
-            measures: "Actions of executives and directors",
-            description: "Scores insider buying/selling direction, size, role seniority, timing, and recurrence.",
-            signal_sources: &["Form 4 filings", "insider transaction feeds", "director/officer ownership reports"],
-            signature: "insider_trading_analysis(symbol: &str, evidence: SentimentEvidence, lookback_days?: usize) -> f64",
-            returns: "Segment score from -5 to +5",
-            params,
-        },
-        SentimentMetricDefinition {
-            key: "technical_sentiment_indicators",
-            display_name: "Technical Sentiment Indicators",
-            measures: "Market psychology reflected in price behavior",
-            description: "Converts crowd psychology from technical evidence such as breadth, volatility, squeezes, capitulation, and trend persistence.",
-            signal_sources: &["technical metric outputs", "market breadth", "volatility metrics", "price action"],
-            signature: "technical_sentiment_indicators(symbol: &str, evidence: SentimentEvidence, lookback_days?: usize) -> f64",
-            returns: "Segment score from -5 to +5",
-            params,
-        },
-        SentimentMetricDefinition {
-            key: "consumer_review_sentiment",
-            display_name: "Consumer Review Sentiment",
-            measures: "Customer opinions about products/services",
-            description: "Scores product review tone, rating velocity, complaint themes, and customer satisfaction shifts.",
-            signal_sources: &["app store reviews", "e-commerce reviews", "product forums", "customer survey sources"],
-            signature: "consumer_review_sentiment(symbol: &str, evidence: SentimentEvidence, lookback_days?: usize) -> f64",
-            returns: "Segment score from -5 to +5",
-            params,
-        },
-        SentimentMetricDefinition {
-            key: "supply_chain_sentiment",
-            display_name: "Supply Chain Sentiment",
-            measures: "Signals from suppliers, logistics, and manufacturing",
-            description: "Scores delivery delays, supplier commentary, inventory stress, logistics signals, and manufacturing momentum.",
-            signal_sources: &["supplier news", "shipping data", "inventory data", "manufacturing reports"],
-            signature: "supply_chain_sentiment(symbol: &str, evidence: SentimentEvidence, lookback_days?: usize) -> f64",
-            returns: "Segment score from -5 to +5",
-            params,
-        },
-        SentimentMetricDefinition {
-            key: "influencer_community_forum_analysis",
-            display_name: "Influencer, Community & Forum Analysis",
-            measures: "Deep discussions from niche communities",
-            description: "Scores expert community conviction, discussion depth, source reputation, and narrative formation.",
-            signal_sources: &["specialist forums", "Substack", "Discord communities", "influencer commentary"],
-            signature: "influencer_community_forum_analysis(symbol: &str, evidence: SentimentEvidence, lookback_days?: usize) -> f64",
-            returns: "Segment score from -5 to +5",
-            params,
-        },
-        SentimentMetricDefinition {
-            key: "macroeconomic_sentiment_analysis",
-            display_name: "Macroeconomic Sentiment Analysis",
-            measures: "Sentiment implied by economic indicators",
-            description: "Scores macro backdrop friendliness using rates, inflation, growth, employment, policy, and sector sensitivity.",
-            signal_sources: &["economic releases", "central bank statements", "rates data", "inflation data"],
-            signature: "macroeconomic_sentiment_analysis(symbol: &str, evidence: SentimentEvidence, lookback_days?: usize) -> f64",
-            returns: "Segment score from -5 to +5",
-            params,
-        },
-        SentimentMetricDefinition {
-            key: "alternative_data_sentiment",
-            display_name: "Alternative Data Sentiment",
-            measures: "Real-world behavioral signals",
-            description: "Scores non-traditional behavior signals such as foot traffic, app usage, web traffic, card spend, and satellite activity.",
-            signal_sources: &["app usage", "web traffic", "card spend", "geolocation", "satellite or sensor data"],
-            signature: "alternative_data_sentiment(symbol: &str, evidence: SentimentEvidence, lookback_days?: usize) -> f64",
-            returns: "Segment score from -5 to +5",
-            params,
-        },
-        SentimentMetricDefinition {
-            key: "prediction_market_analysis",
-            display_name: "Prediction Market Analysis",
-            measures: "What people are willing to bet on happening",
-            description: "Scores market-implied probability shifts from prediction, event, or betting markets tied to company outcomes.",
-            signal_sources: &["prediction markets", "event markets", "betting odds", "probability markets"],
-            signature: "prediction_market_analysis(symbol: &str, evidence: SentimentEvidence, lookback_days?: usize) -> f64",
-            returns: "Segment score from -5 to +5",
-            params,
-        },
+        SentimentMetricDefinition { key: "news_sentiment_analysis", display_name: "News Sentiment Analysis", measures: "Positive/negative tone in financial news articles", description: "Scores financial news tone, article credibility, recency, and event severity for the shortlisted asset.", signal_sources: &["financial news APIs", "issuer press releases", "wire services"], signature: "news_sentiment_analysis(symbol: &str, evidence: SentimentEvidence, lookback_days?: usize) -> f64", returns: "Segment score from -5 to +5", params },
+        SentimentMetricDefinition { key: "social_media_sentiment", display_name: "Social Media Sentiment", measures: "Public opinion from X, Reddit, LinkedIn, Facebook, etc.", description: "Aggregates social posts by source credibility, reach, engagement, bot-likelihood, and stance.", signal_sources: &["X", "Reddit", "LinkedIn", "Facebook"], signature: "social_media_sentiment(symbol: &str, evidence: SentimentEvidence, lookback_days?: usize) -> f64", returns: "Segment score from -5 to +5", params },
+        SentimentMetricDefinition { key: "search_trend_analysis", display_name: "Search Trend Analysis", measures: "Rising interest using search volume data", description: "Scores abnormal search interest, query quality, and whether attention is positive, negative, or speculative.", signal_sources: &["Google Trends", "search-volume providers", "keyword intelligence APIs"], signature: "search_trend_analysis(symbol: &str, evidence: SentimentEvidence, lookback_days?: usize) -> f64", returns: "Segment score from -5 to +5", params },
+        SentimentMetricDefinition { key: "options_market_sentiment", display_name: "Options Market Sentiment", measures: "Expectations implied by options traders", description: "Evaluates put/call skew, implied volatility shifts, unusual activity, and directional premium demand.", signal_sources: &["options chains", "put/call ratios", "implied volatility surfaces", "unusual options flow"], signature: "options_market_sentiment(symbol: &str, evidence: SentimentEvidence, lookback_days?: usize) -> f64", returns: "Segment score from -5 to +5", params },
+        SentimentMetricDefinition { key: "institutional_fund_flow_analysis", display_name: "Institutional Fund Flow Analysis", measures: "Where large investors are moving capital", description: "Scores ETF flows, block trades, ownership changes, and institutional accumulation/distribution signals.", signal_sources: &["fund flow feeds", "13F filings", "block trade data", "ETF flow data"], signature: "institutional_fund_flow_analysis(symbol: &str, evidence: SentimentEvidence, lookback_days?: usize) -> f64", returns: "Segment score from -5 to +5", params },
+        SentimentMetricDefinition { key: "analyst_rating_sentiment", display_name: "Analyst Rating Sentiment", measures: "Upgrades, downgrades, and target-price revisions", description: "Scores analyst action direction, magnitude, analyst quality, consensus drift, and target-price changes.", signal_sources: &["analyst ratings", "target-price revisions", "broker research summaries"], signature: "analyst_rating_sentiment(symbol: &str, evidence: SentimentEvidence, lookback_days?: usize) -> f64", returns: "Segment score from -5 to +5", params },
+        SentimentMetricDefinition { key: "earnings_call_sentiment", display_name: "Earnings Call Sentiment", measures: "Management confidence and tone during earnings calls", description: "Scores management tone, uncertainty, forward-looking confidence, Q&A pressure, and guidance language.", signal_sources: &["earnings call transcripts", "prepared remarks", "Q&A transcripts", "guidance updates"], signature: "earnings_call_sentiment(symbol: &str, evidence: SentimentEvidence, lookback_days?: usize) -> f64", returns: "Segment score from -5 to +5", params },
+        SentimentMetricDefinition { key: "insider_trading_analysis", display_name: "Insider Trading Analysis", measures: "Actions of executives and directors", description: "Scores insider buying/selling direction, size, role seniority, timing, and recurrence.", signal_sources: &["Form 4 filings", "insider transaction feeds", "director/officer ownership reports"], signature: "insider_trading_analysis(symbol: &str, evidence: SentimentEvidence, lookback_days?: usize) -> f64", returns: "Segment score from -5 to +5", params },
+        SentimentMetricDefinition { key: "technical_sentiment_indicators", display_name: "Technical Sentiment Indicators", measures: "Market psychology reflected in price behavior", description: "Converts crowd psychology from technical evidence such as breadth, volatility, squeezes, capitulation, and trend persistence.", signal_sources: &["technical metric outputs", "market breadth", "volatility metrics", "price action"], signature: "technical_sentiment_indicators(symbol: &str, evidence: SentimentEvidence, lookback_days?: usize) -> f64", returns: "Segment score from -5 to +5", params },
+        SentimentMetricDefinition { key: "consumer_review_sentiment", display_name: "Consumer Review Sentiment", measures: "Customer opinions about products/services", description: "Scores product review tone, rating velocity, complaint themes, and customer satisfaction shifts.", signal_sources: &["app store reviews", "e-commerce reviews", "product forums", "customer survey sources"], signature: "consumer_review_sentiment(symbol: &str, evidence: SentimentEvidence, lookback_days?: usize) -> f64", returns: "Segment score from -5 to +5", params },
+        SentimentMetricDefinition { key: "supply_chain_sentiment", display_name: "Supply Chain Sentiment", measures: "Signals from suppliers, logistics, and manufacturing", description: "Scores delivery delays, supplier commentary, inventory stress, logistics signals, and manufacturing momentum.", signal_sources: &["supplier news", "shipping data", "inventory data", "manufacturing reports"], signature: "supply_chain_sentiment(symbol: &str, evidence: SentimentEvidence, lookback_days?: usize) -> f64", returns: "Segment score from -5 to +5", params },
+        SentimentMetricDefinition { key: "influencer_community_forum_analysis", display_name: "Influencer, Community & Forum Analysis", measures: "Deep discussions from niche communities", description: "Scores expert community conviction, discussion depth, source reputation, and narrative formation.", signal_sources: &["specialist forums", "Substack", "Discord communities", "influencer commentary"], signature: "influencer_community_forum_analysis(symbol: &str, evidence: SentimentEvidence, lookback_days?: usize) -> f64", returns: "Segment score from -5 to +5", params },
+        SentimentMetricDefinition { key: "macroeconomic_sentiment_analysis", display_name: "Macroeconomic Sentiment Analysis", measures: "Sentiment implied by economic indicators", description: "Scores macro backdrop friendliness using rates, inflation, growth, employment, policy, and sector sensitivity.", signal_sources: &["economic releases", "central bank statements", "rates data", "inflation data"], signature: "macroeconomic_sentiment_analysis(symbol: &str, evidence: SentimentEvidence, lookback_days?: usize) -> f64", returns: "Segment score from -5 to +5", params },
+        SentimentMetricDefinition { key: "alternative_data_sentiment", display_name: "Alternative Data Sentiment", measures: "Real-world behavioral signals", description: "Scores non-traditional behavior signals such as foot traffic, app usage, web traffic, card spend, and satellite activity.", signal_sources: &["app usage", "web traffic", "card spend", "geolocation", "satellite or sensor data"], signature: "alternative_data_sentiment(symbol: &str, evidence: SentimentEvidence, lookback_days?: usize) -> f64", returns: "Segment score from -5 to +5", params },
+        SentimentMetricDefinition { key: "prediction_market_analysis", display_name: "Prediction Market Analysis", measures: "What people are willing to bet on happening", description: "Scores market-implied probability shifts from prediction, event, or betting markets tied to company outcomes.", signal_sources: &["prediction markets", "event markets", "betting odds", "probability markets"], signature: "prediction_market_analysis(symbol: &str, evidence: SentimentEvidence, lookback_days?: usize) -> f64", returns: "Segment score from -5 to +5", params },
     ]
 }
+
+// ===========================================================================
+// Scoring & Utility Functions
+// ===========================================================================
 
 pub fn clamp(value: f64, min: f64, max: f64) -> f64 {
     value.max(min).min(max)
@@ -1069,14 +453,12 @@ pub fn percentile(values: &[f64], pct: f64) -> f64 {
     if values.is_empty() {
         return 0.0;
     }
-
     let mut sorted = values.to_vec();
     sorted.sort_by(|left, right| left.total_cmp(right));
     let pct = clamp(pct, 0.0, 100.0);
     let rank = (pct / 100.0) * (sorted.len().saturating_sub(1) as f64);
     let lower = rank.floor() as usize;
     let upper = rank.ceil() as usize;
-
     if lower == upper {
         sorted[lower]
     } else {
@@ -1097,11 +479,9 @@ pub fn relative_strength_index(prices: &[f64], period: usize) -> f64 {
     if prices.len() < 2 || period == 0 {
         return 50.0;
     }
-
     let start = prices.len().saturating_sub(period + 1);
     let mut gains = 0.0;
     let mut losses = 0.0;
-
     for pair in prices[start..].windows(2) {
         let delta = pair[1] - pair[0];
         if delta >= 0.0 {
@@ -1110,11 +490,9 @@ pub fn relative_strength_index(prices: &[f64], period: usize) -> f64 {
             losses += delta.abs();
         }
     }
-
     if losses == 0.0 {
         return 100.0;
     }
-
     let rs = gains / losses;
     100.0 - (100.0 / (1.0 + rs))
 }
@@ -1124,7 +502,6 @@ pub fn volume_weighted_average_price(candles: &[MarketCandle]) -> f64 {
     if volume == 0.0 {
         return candles.last().map(|candle| candle.close).unwrap_or_default();
     }
-
     candles
         .iter()
         .map(|candle| ((candle.high + candle.low + candle.close) / 3.0) * candle.volume)
@@ -1151,12 +528,10 @@ pub fn weighted_sentiment_score(dimensions: &[(f64, f64)]) -> f64 {
     if total_weight == 0.0 {
         return 0.0;
     }
-
     let weighted = dimensions
         .iter()
         .map(|(weight_pct, score)| (weight_pct / total_weight) * clamp(*score, -5.0, 5.0))
         .sum::<f64>();
-
     clamp(weighted, -5.0, 5.0)
 }
 
@@ -1199,7 +574,6 @@ pub fn deterministic_execution_result(symbol: &str, horizon: TradeHorizon, seed:
     let max_drawdown_pct = 2.0 + (base % 40) as f64 / 5.0;
     let hit_rate_pct = 45.0 + (base % 35) as f64;
     let score = execution_score(pnl_pct, max_drawdown_pct, hit_rate_pct);
-
     TradeSimulationResult {
         symbol: symbol.to_string(),
         horizon,
@@ -1217,7 +591,6 @@ pub fn deterministic_paper_result(symbol: &str, timeline: &str, seed: usize) -> 
     let volatility_pct = 5.0 + (base % 25) as f64 / 3.0;
     let adherence_pct = 70.0 + (base % 25) as f64;
     let risk_adjusted_score = paper_trading_score(pnl_pct, volatility_pct, adherence_pct);
-
     PaperTradingResult {
         symbol: symbol.to_string(),
         timeline: timeline.to_string(),
@@ -1256,14 +629,6 @@ mod tests {
         let score = composite_score(90.0, 80.0, 70.0);
         assert!((score - 81.5).abs() < 0.0001);
     }
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
-=======
->>>>>>> f181a9b (Fundamental Analysis Metrics Functions Re-defining)
-=======
->>>>>>> 912eccc (Creating Agentic AI to create sentiment analysis metrics)
 
     #[test]
     fn technical_catalog_contains_all_expected_metrics() {
@@ -1272,8 +637,6 @@ mod tests {
         assert!(catalog.iter().any(|metric| metric.key == "trend_strength_adx"));
         assert!(catalog.iter().any(|metric| metric.key == "market_structure_analysis"));
     }
-<<<<<<< HEAD
-=======
 
     #[test]
     fn fundamental_catalog_contains_all_expected_metrics() {
@@ -1282,10 +645,6 @@ mod tests {
         assert!(catalog.iter().any(|metric| metric.key == "revenue_growth_rate"));
         assert!(catalog.iter().any(|metric| metric.key == "peg_ratio"));
     }
-<<<<<<< HEAD
->>>>>>> 6221676 (Fundamental Analysis Metrics Functions Re-defining)
->>>>>>> f181a9b (Fundamental Analysis Metrics Functions Re-defining)
-=======
 
     #[test]
     fn sentiment_catalog_contains_all_expected_metrics() {
@@ -1295,8 +654,4 @@ mod tests {
         assert!(catalog.iter().any(|metric| metric.key == "news_sentiment_analysis"));
         assert!(catalog.iter().any(|metric| metric.key == "prediction_market_analysis"));
     }
-<<<<<<< HEAD
->>>>>>> 912eccc (Creating Agentic AI to create sentiment analysis metrics)
-=======
->>>>>>> 5378fc4 (Initial Launch Testing)
 }

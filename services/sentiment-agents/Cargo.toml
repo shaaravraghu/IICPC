@@ -5,8 +5,20 @@ license.workspace = true
 version.workspace = true
 
 [dependencies]
-eval-algorithms = { path = "../../libs/eval-algorithms" }
 platform-types = { path = "../../libs/platform-types" }
+eval-algorithms = { path = "../../libs/eval-algorithms" }
+strategy-parser = { path = "../../libs/strategy-parser" }
+kafka-utils = { path = "../../libs/kafka-utils" }
+db-client = { path = "../../libs/db-client" }
+tokio = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+serde_yaml = { workspace = true }
+axum = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+uuid = { workspace = true }
+chrono = { workspace = true }
 
 [[bin]]
 name = "sentiment-agents"
