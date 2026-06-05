@@ -6,6 +6,7 @@ version.workspace = true
 
 [dependencies]
 platform-types = { path = "../platform-types" }
+serde_json = "1"
 
 [lib]
 path = "src/lib.rs"

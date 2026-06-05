@@ -1,13 +1,14 @@
+use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Asset {
     pub symbol: String,
     pub name: String,
     pub sector: String,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct MarketCandle {
     pub timestamp: i64,
     pub open: f64,
@@ -17,7 +18,7 @@ pub struct MarketCandle {
     pub volume: f64,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum MetricCategory {
     Technical,
     Fundamental,
@@ -27,7 +28,7 @@ pub enum MetricCategory {
     Utility,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum ParamValue {
     Number(f64),
     Integer(i64),
@@ -45,7 +46,7 @@ impl ParamValue {
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct FunctionCall {
     pub name: String,
     pub params: BTreeMap<String, ParamValue>,
@@ -84,8 +85,6 @@ pub struct TechnicalMetricDefinition {
     pub params: &'static [FunctionParamDef],
 }
 
-<<<<<<< HEAD
-=======
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct FundamentalMetricDefinition {
     pub key: &'static str,
@@ -97,12 +96,6 @@ pub struct FundamentalMetricDefinition {
     pub params: &'static [FunctionParamDef],
 }
 
-<<<<<<< HEAD
-<<<<<<< HEAD
->>>>>>> f181a9b (Fundamental Analysis Metrics Functions Re-defining)
-=======
-=======
->>>>>>> 5378fc4 (Initial Launch Testing)
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct SentimentMetricDefinition {
     pub key: &'static str,
@@ -115,11 +108,7 @@ pub struct SentimentMetricDefinition {
     pub params: &'static [FunctionParamDef],
 }
 
-<<<<<<< HEAD
->>>>>>> 912eccc (Creating Agentic AI to create sentiment analysis metrics)
-=======
->>>>>>> 5378fc4 (Initial Launch Testing)
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct MetricGroup {
     pub id: String,
     pub category: MetricCategory,
@@ -127,14 +116,14 @@ pub struct MetricGroup {
     pub pass_threshold: f64,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct SentimentDimension {
     pub name: String,
     pub weight_pct: f64,
     pub call: FunctionCall,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct StrategyManifest {
     pub id: String,
     pub owner: String,
@@ -143,7 +132,7 @@ pub struct StrategyManifest {
     pub sentiment_dimensions: Vec<SentimentDimension>,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct MetricSignal {
     pub asset: Asset,
     pub group_id: String,
@@ -152,14 +141,14 @@ pub struct MetricSignal {
     pub reasons: Vec<String>,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct RankedAsset {
     pub asset: Asset,
     pub signal_score: f64,
     pub dimensions: Vec<(String, f64)>,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum TradeHorizon {
     Intraday,
     ShortTerm,
@@ -167,7 +156,7 @@ pub enum TradeHorizon {
     LongTerm,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct TradeSimulationResult {
     pub symbol: String,
     pub horizon: TradeHorizon,
@@ -178,7 +167,7 @@ pub struct TradeSimulationResult {
     pub score: f64,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct PaperTradingResult {
     pub symbol: String,
     pub timeline: String,
@@ -186,7 +175,7 @@ pub struct PaperTradingResult {
     pub risk_adjusted_score: f64,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct TelemetrySnapshot {
     pub run_id: String,
     pub p50_latency_ms: f64,
@@ -197,7 +186,7 @@ pub struct TelemetrySnapshot {
     pub uptime_pct: f64,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct LeaderboardRow {
     pub rank: usize,
     pub strategy_id: String,
@@ -208,7 +197,7 @@ pub struct LeaderboardRow {
     pub composite_score: f64,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum PipelineEvent {
     StrategySubmitted { strategy_id: String },
     TechnicalPassed(MetricSignal),
@@ -216,4 +205,64 @@ pub enum PipelineEvent {
     SentimentRanked(RankedAsset),
     ExecutionScored(TradeSimulationResult),
     PaperTradingScored(PaperTradingResult),
+}
+
+// --- Kafka message envelope ---
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct PipelineMessage {
+    pub run_id: String,
+    pub submission_id: String,
+    pub timestamp_ms: i64,
+    pub payload: PipelinePayload,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub enum PipelinePayload {
+    /// Initial submission with strategy manifest and asset universe
+    SubmissionCreated {
+        strategy: StrategyManifest,
+        assets: Vec<String>,
+    },
+    /// Technical layer results for a batch of assets
+    TechnicalResults {
+        passed: Vec<AssetScore>,
+        failed: Vec<AssetScore>,
+    },
+    /// Fundamental layer results
+    FundamentalResults {
+        passed: Vec<AssetScore>,
+        failed: Vec<AssetScore>,
+    },
+    /// Sentiment layer results — all assets scored, ranked
+    SentimentResults {
+        ranked: Vec<AssetScore>,
+    },
+    /// Execution simulation results
+    ExecutionResults {
+        scored: Vec<AssetScore>,
+    },
+    /// Paper trading results
+    PaperTradingResults {
+        scored: Vec<AssetScore>,
+    },
+    /// Final leaderboard row from telemetry-judge
+    LeaderboardUpdate {
+        rows: Vec<LeaderboardRow>,
+    },
+    /// Telemetry event for latency monitoring
+    TelemetryEvent {
+        stage: String,
+        metric: String,
+        value: f64,
+    },
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct AssetScore {
+    pub symbol: String,
+    pub score: f64,
+    pub passed: bool,
+    pub layer: String,
+    pub details: serde_json::Value,
 }
