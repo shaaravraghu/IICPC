@@ -8,6 +8,7 @@ import { Activity, Zap, ShieldCheck, ChevronRight } from "lucide-react";
 
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { WebSocketProvider } from "@/hooks/useWebSocket";
 
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/layout/app-sidebar";
@@ -377,10 +378,12 @@ function ClerkProviderWithRoutes() {
     >
       <QueryClientProvider client={queryClient}>
         <ClerkQueryClientCacheInvalidator />
-        <TooltipProvider>
-          <AppRouter />
-          <Toaster />
-        </TooltipProvider>
+        <WebSocketProvider>
+          <TooltipProvider>
+            <AppRouter />
+            <Toaster />
+          </TooltipProvider>
+        </WebSocketProvider>
       </QueryClientProvider>
     </ClerkProvider>
   );

@@ -1,10 +1,13 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { motion, AnimatePresence } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { fetchJson } from "@/lib/api";
+import { useSocketEvent } from "@/hooks/useWebSocket";
 import { Trophy, Activity, ArrowDown, ArrowUp, Search, BarChart3 } from "lucide-react";
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
@@ -64,36 +67,57 @@ function ScoreCell({ value, tone }: { value: number | null; tone: string }) {
   );
 }
 
-async function fetchJson<T>(url: string): Promise<T> {
-  const response = await fetch(url);
-  if (!response.ok) {
-    throw new Error(`Request failed with ${response.status}`);
-  }
-  return response.json() as Promise<T>;
-}
-
 export default function Leaderboard() {
   const [requestedRunId, setRequestedRunId] = useState("");
   const [symbolFilter, setSymbolFilter] = useState("");
   const [sortKey, setSortKey] = useState<SortKey>("compositeScore");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
+  const [liveRows, setLiveRows] = useState<AssetLeaderboardRow[] | null>(null);
 
   const { data: runs, isLoading: runsLoading } = useQuery({
     queryKey: ["pipeline-runs-latest"],
     queryFn: () => fetchJson<PipelineRun[]>("/api/pipeline/runs?limit=1"),
-    refetchInterval: 2000,
+    refetchInterval: 5000,
   });
 
   const activeRunId = requestedRunId.trim() || runs?.[0]?.id || "";
+  const {
+    data: leaderboardUpdate,
+    connected: leaderboardSocketConnected,
+  } = useSocketEvent<AssetLeaderboardRow[] | { testRunId?: string; rows?: AssetLeaderboardRow[] }>(
+    ["leaderboard:update", "leaderboard:rows", "leaderboard-update"],
+    activeRunId ? `leaderboard:${activeRunId}` : "leaderboard",
+  );
+
   const { data: rows, isLoading: rowsLoading } = useQuery({
     queryKey: ["asset-leaderboard", activeRunId],
     queryFn: () => fetchJson<AssetLeaderboardRow[]>(`/api/leaderboard/${activeRunId}`),
     enabled: activeRunId.length > 0,
-    refetchInterval: 2000,
+    refetchInterval: activeRunId.length > 0 && !leaderboardSocketConnected ? 2000 : false,
   });
 
+  useEffect(() => {
+    setLiveRows(null);
+  }, [activeRunId]);
+
+  useEffect(() => {
+    if (!leaderboardUpdate) return;
+
+    const nextRows = Array.isArray(leaderboardUpdate)
+      ? leaderboardUpdate
+      : leaderboardUpdate.rows;
+
+    const payloadRunId = Array.isArray(leaderboardUpdate)
+      ? nextRows?.[0]?.testRunId
+      : leaderboardUpdate.testRunId ?? nextRows?.[0]?.testRunId;
+
+    if (nextRows && (!payloadRunId || payloadRunId === activeRunId)) {
+      setLiveRows(nextRows);
+    }
+  }, [activeRunId, leaderboardUpdate]);
+
   const sortedRows = useMemo(() => {
-    const filtered = (rows ?? []).filter((row) =>
+    const filtered = (liveRows ?? rows ?? []).filter((row) =>
       row.symbol.toLowerCase().includes(symbolFilter.trim().toLowerCase())
     );
     return filtered.sort((a, b) => {
@@ -101,7 +125,7 @@ export default function Leaderboard() {
       const bValue = sortKey === "rank" ? b.rank : scoreValue(b[sortKey]);
       return sortDirection === "asc" ? aValue - bValue : bValue - aValue;
     });
-  }, [rows, sortDirection, sortKey, symbolFilter]);
+  }, [liveRows, rows, sortDirection, sortKey, symbolFilter]);
 
   const topRow = sortedRows[0];
   const scoreSummary = useMemo(() => {
@@ -165,7 +189,7 @@ export default function Leaderboard() {
             />
             <Badge variant="outline" className="h-9 justify-center gap-2 rounded px-3 font-mono text-xs">
               <span className="h-2 w-2 rounded-full bg-primary" />
-              2s
+              {leaderboardSocketConnected ? "live" : "2s"}
             </Badge>
           </div>
         </div>
@@ -244,9 +268,15 @@ export default function Leaderboard() {
             {Array.from({ length: 8 }).map((_, index) => <Skeleton key={index} className="h-14 w-full" />)}
           </div>
         ) : sortedRows.length > 0 ? (
-          sortedRows.map((row) => (
-            <div
+          <AnimatePresence initial={false}>
+            {sortedRows.map((row) => (
+            <motion.div
               key={`${row.testRunId}-${row.assetId}`}
+              layout
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.2 }}
               className="grid grid-cols-12 items-center gap-3 border-b border-border px-8 py-3 transition-colors hover:bg-card/50"
             >
               <div className="col-span-1 font-mono text-sm font-bold text-muted-foreground">#{row.rank}</div>
@@ -263,8 +293,9 @@ export default function Leaderboard() {
                   {row.rejectedAtLayer ?? "live"}
                 </Badge>
               </div>
-            </div>
-          ))
+            </motion.div>
+            ))}
+          </AnimatePresence>
         ) : (
           <div className="flex flex-col items-center justify-center py-24 text-center">
             <Trophy className="mb-4 h-12 w-12 text-muted-foreground/30" />

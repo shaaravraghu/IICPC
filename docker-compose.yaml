@@ -1,0 +1,173 @@
+name: iicpc
+
+x-node-service: &node-service
+  image: node:22-bookworm
+  working_dir: /workspace
+  volumes:
+    - .:/workspace
+    - pnpm-store:/workspace/.pnpm-store
+  environment:
+    COREPACK_HOME: /workspace/.corepack
+    PNPM_HOME: /workspace/.pnpm-home
+    DATABASE_URL: postgres://postgres:postgres@timescaledb:5432/iicpc
+    MESSAGE_TRANSPORT: kafka
+    ORCHESTRATOR: docker-compose
+  depends_on:
+    timescaledb:
+      condition: service_healthy
+
+x-rust-service: &rust-service
+  image: rust:1.82-bookworm
+  working_dir: /workspace
+  volumes:
+    - .:/workspace
+    - cargo-cache:/usr/local/cargo/registry
+    - target-cache:/workspace/target
+  environment:
+    KAFKA_BROKERS: kafka:9092
+    DATABASE_URL: postgres://postgres:postgres@timescaledb:5432/iicpc
+    RUST_LOG: info
+  depends_on:
+    kafka:
+      condition: service_healthy
+    timescaledb:
+      condition: service_healthy
+
+services:
+  kafka:
+    image: confluentinc/cp-kafka:7.7.2
+    hostname: kafka
+    ports:
+      - "9092:9092"
+      - "29092:29092"
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_LISTENERS: PLAINTEXT://kafka:9092,CONTROLLER://kafka:9093,PLAINTEXT_HOST://0.0.0.0:29092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      CLUSTER_ID: MkU3OEVBNTcwNTJENDM2Qk
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-broker-api-versions --bootstrap-server kafka:9092 >/dev/null 2>&1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  timescaledb:
+    image: timescale/timescaledb:latest-pg16
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: iicpc
+    volumes:
+      - timescale-data:/var/lib/postgresql/data
+      - ./infrastructure/kubernetes/timescale/init.sql:/docker-entrypoint-initdb.d/001-init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d iicpc"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  api-gateway:
+    <<: *rust-service
+    command: sh -lc "apt-get update && apt-get install -y --no-install-recommends cmake pkg-config libssl-dev && cargo run -p api-gateway"
+    depends_on:
+      kafka:
+        condition: service_healthy
+      timescaledb:
+        condition: service_healthy
+
+  technical-agents:
+    <<: *rust-service
+    command: sh -lc "apt-get update && apt-get install -y --no-install-recommends cmake pkg-config libssl-dev && cargo run -p technical-agents"
+    environment:
+      KAFKA_BROKERS: kafka:9092
+      DATABASE_URL: postgres://postgres:postgres@timescaledb:5432/iicpc
+      PORT: 8081
+
+  fundamental-agents:
+    <<: *rust-service
+    command: sh -lc "apt-get update && apt-get install -y --no-install-recommends cmake pkg-config libssl-dev && cargo run -p fundamental-agents"
+    environment:
+      KAFKA_BROKERS: kafka:9092
+      DATABASE_URL: postgres://postgres:postgres@timescaledb:5432/iicpc
+      PORT: 8082
+
+  sentiment-agents:
+    <<: *rust-service
+    command: sh -lc "apt-get update && apt-get install -y --no-install-recommends cmake pkg-config libssl-dev && cargo run -p sentiment-agents"
+    environment:
+      KAFKA_BROKERS: kafka:9092
+      DATABASE_URL: postgres://postgres:postgres@timescaledb:5432/iicpc
+      PORT: 8083
+
+  execution-sim:
+    <<: *rust-service
+    command: sh -lc "apt-get update && apt-get install -y --no-install-recommends cmake pkg-config libssl-dev && cargo run -p execution-sim"
+    environment:
+      KAFKA_BROKERS: kafka:9092
+      DATABASE_URL: postgres://postgres:postgres@timescaledb:5432/iicpc
+      PORT: 8084
+
+  paper-trading:
+    <<: *rust-service
+    command: sh -lc "apt-get update && apt-get install -y --no-install-recommends cmake pkg-config libssl-dev && cargo run -p paper-trading"
+    environment:
+      KAFKA_BROKERS: kafka:9092
+      DATABASE_URL: postgres://postgres:postgres@timescaledb:5432/iicpc
+      PORT: 8085
+
+  telemetry-judge:
+    <<: *rust-service
+    command: sh -lc "apt-get update && apt-get install -y --no-install-recommends cmake pkg-config libssl-dev && cargo run -p telemetry-judge"
+    environment:
+      KAFKA_BROKERS: kafka:9092
+      DATABASE_URL: postgres://postgres:postgres@timescaledb:5432/iicpc
+      PORT: 8086
+
+  api-server:
+    <<: *node-service
+    ports:
+      - "3001:3001"
+    environment:
+      COREPACK_HOME: /workspace/.corepack
+      PNPM_HOME: /workspace/.pnpm-home
+      DATABASE_URL: postgres://postgres:postgres@timescaledb:5432/iicpc
+      MESSAGE_TRANSPORT: kafka
+      ORCHESTRATOR: docker-compose
+      PORT: 3001
+      CLERK_PUBLISHABLE_KEY: ${CLERK_PUBLISHABLE_KEY:-}
+      CLERK_SECRET_KEY: ${CLERK_SECRET_KEY:-}
+    command: sh -lc "corepack enable && pnpm install --frozen-lockfile && pnpm --filter @workspace/db push && pnpm --filter @workspace/api-server dev"
+
+  frontend:
+    <<: *node-service
+    ports:
+      - "3000:3000"
+    environment:
+      COREPACK_HOME: /workspace/.corepack
+      PNPM_HOME: /workspace/.pnpm-home
+      PORT: 3000
+      BASE_PATH: /
+      VITE_API_URL: http://localhost:3001
+      VITE_CLERK_PUBLISHABLE_KEY: ${VITE_CLERK_PUBLISHABLE_KEY:-pk_test_local}
+      VITE_CLERK_PROXY_URL: ${VITE_CLERK_PROXY_URL:-}
+    depends_on:
+      api-server:
+        condition: service_started
+    command: sh -lc "corepack enable && pnpm install --frozen-lockfile && pnpm --filter @workspace/iicpc-platform dev"
+
+volumes:
+  timescale-data:
+  pnpm-store:
+  cargo-cache:
+  target-cache:

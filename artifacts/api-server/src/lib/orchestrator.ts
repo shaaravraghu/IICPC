@@ -24,6 +24,7 @@ import {
 } from "./bots/sentimentBot";
 import { simulateExecution } from "./executionSimulator";
 import { logger } from "./logger";
+import { emitLeaderboard, emitRunStatus } from "./realtime";
 
 export const DEFAULT_ASSETS = [
   "AAPL",
@@ -46,6 +47,7 @@ type AssetCandidate = {
   fundamentalScore?: number;
   sentimentScore?: number;
   executionScore?: number;
+  paperScore?: number;
 };
 type LayerBotResult = TechnicalBotResult | FundamentalBotResult | SentimentBotResult;
 type AggregatedLayerResult = {
@@ -141,9 +143,10 @@ export async function runPipeline(testRunId: string, assets: string[]): Promise<
     const executionRanked = await measureLayer(testRunId, "execution", () => executionLayer(testRunId, sentimentRanked));
 
     await markRunLayer(testRunId, "paper", 98);
+    const paperRanked = await measureLayer(testRunId, "paper", () => paperLayer(testRunId, executionRanked));
     await completeRun(testRunId);
 
-    return executionRanked;
+    return paperRanked;
   } catch (err) {
     await failRun(testRunId, err);
     throw err;
@@ -326,6 +329,52 @@ async function executionLayer(testRunId: string, assets: AssetCandidate[]): Prom
   return ranked;
 }
 
+async function paperLayer(testRunId: string, assets: AssetCandidate[]): Promise<AssetCandidate[]> {
+  const scored = assets.map((asset) => {
+    const sentimentScore = asset.sentimentScore ?? 0;
+    const executionScore = asset.executionScore ?? 0;
+    const symbolSeed = Array.from(asset.symbol).reduce((sum, char) => sum + char.charCodeAt(0), 0);
+    const riskAdjustment = 0.92 + (symbolSeed % 17) / 100;
+    const paperScore = Math.max(0, Math.min(100, Math.round(((sentimentScore * 0.35 + executionScore * 0.65) * riskAdjustment) * 100) / 100));
+
+    return {
+      ...asset,
+      paperScore,
+    };
+  });
+
+  const ranked = scored
+    .map((asset) => ({
+      ...asset,
+      compositeScore: average([
+        asset.sentimentScore ?? 0,
+        asset.executionScore ?? 0,
+        asset.paperScore ?? 0,
+      ]),
+    }))
+    .sort((a, b) => b.compositeScore - a.compositeScore);
+
+  for (const [index, asset] of ranked.entries()) {
+    await db
+      .update(assetScoresTable)
+      .set({
+        paperScore: asset.paperScore,
+        compositeScore: asset.compositeScore,
+        compositeRank: index + 1,
+        updatedAt: new Date(),
+      })
+      .where(and(eq(assetScoresTable.testRunId, testRunId), eq(assetScoresTable.assetId, asset.assetId)));
+  }
+
+  await updateDetailedRun(testRunId, {
+    paperAvgScore: average(scored.map((asset) => asset.paperScore ?? 0)),
+    progressPct: 99,
+  });
+  await emitLeaderboard(testRunId);
+
+  return ranked;
+}
+
 async function insertExecutionEvents(
   testRunId: string,
   simulations: Array<Awaited<ReturnType<typeof simulateExecution>>>
@@ -461,12 +510,12 @@ async function updateDetailedRun(
     .update(testRunsDetailedTable)
     .set({ ...values, updatedAt: new Date() })
     .where(eq(testRunsDetailedTable.testRunId, testRunId));
+  await emitRunStatus(testRunId);
 }
 
 async function completeRun(testRunId: string): Promise<void> {
   const completedAt = new Date();
   await updateDetailedRun(testRunId, {
-    paperAvgScore: null,
     status: "completed",
     currentLayer: "completed",
     progressPct: 100,
