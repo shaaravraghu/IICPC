@@ -16,6 +16,7 @@ import { AppSidebar } from "@/components/layout/app-sidebar";
 import Home from "@/pages/home";
 import Editor from "@/pages/editor";
 import Leaderboard from "@/pages/leaderboard";
+import PaperTrading from "@/pages/paper-trading";
 import Learn from "@/pages/learn";
 import Profile from "@/pages/profile";
 import NotFound from "@/pages/not-found";
@@ -348,6 +349,9 @@ function AppRouter() {
       </Route>
       <Route path="/leaderboard">
         <ProtectedLayout><Leaderboard /></ProtectedLayout>
+      </Route>
+      <Route path="/paper-trading">
+        <ProtectedLayout><PaperTrading /></ProtectedLayout>
       </Route>
       <Route path="/learn">
         <ProtectedLayout><Learn /></ProtectedLayout>
