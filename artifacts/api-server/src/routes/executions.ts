@@ -7,6 +7,7 @@ import {
   testRunsDetailedTable,
 } from "@workspace/db";
 import { DEFAULT_ASSETS, initializeExecutionRun, runPipeline } from "../lib/orchestrator";
+import { emitPipelineProgress } from "../lib/websocket";
 
 const router: IRouter = Router();
 
@@ -43,6 +44,15 @@ router.post("/executions/start", async (req, res): Promise<void> => {
   }
 
   await initializeExecutionRun(testRunId, submissionId, assets.length);
+  emitPipelineProgress({
+    testRunId,
+    submissionId,
+    status: "queued",
+    currentLayer: "technical",
+    progressPct: 0,
+    assetsTotal: assets.length,
+    assetsAnalyzed: 0,
+  });
 
   runPipeline(testRunId, assets).catch((err: unknown) => {
     console.error("execution pipeline failed", err);

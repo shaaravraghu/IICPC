@@ -203,6 +203,8 @@ spec:
               value: iicpc
             - name: POSTGRES_USER
               value: iicpc
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
             - name: POSTGRES_PASSWORD
               valueFrom:
                 secretKeyRef:

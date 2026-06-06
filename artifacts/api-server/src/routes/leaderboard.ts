@@ -6,6 +6,7 @@ import {
   GetLeaderboardResponse,
   GetLeaderboardSummaryResponse,
 } from "@workspace/api-zod";
+import { emitLeaderboardUpdate } from "../lib/websocket";
 
 const router: IRouter = Router();
 
@@ -189,6 +190,51 @@ router.get("/leaderboard", async (req, res): Promise<void> => {
   }));
 
   res.json(GetLeaderboardResponse.parse(entries));
+  emitLeaderboardUpdate({
+    rows: entries,
+    emittedAt: new Date().toISOString(),
+    source: "leaderboard_route",
+  });
+});
+
+// GET /leaderboard/snapshots/history
+router.get("/leaderboard/snapshots/history", async (req, res): Promise<void> => {
+  const rawLimit = typeof req.query["limit"] === "string" ? Number(req.query["limit"]) : 20;
+  const limit = Number.isFinite(rawLimit) && rawLimit > 0 ? Math.min(Math.floor(rawLimit), 100) : 20;
+
+  const rows = await db
+    .select({
+      submissionId: submissionsTable.id,
+      userId: submissionsTable.userId,
+      username: submissionsTable.username,
+      teamName: submissionsTable.teamName,
+      compositeScore: submissionsTable.compositeScore,
+      speedScore: submissionsTable.speedScore,
+      stabilityScore: submissionsTable.stabilityScore,
+      correctnessScore: submissionsTable.correctnessScore,
+      completedAt: submissionsTable.completedAt,
+    })
+    .from(submissionsTable)
+    .where(and(eq(submissionsTable.status, "completed"), isNotNull(submissionsTable.compositeScore)))
+    .orderBy(desc(submissionsTable.completedAt));
+
+  res.json({
+    snapshots: rows.slice(0, limit).map((row, index) => ({
+      id: `${row.submissionId}:${row.completedAt?.toISOString() ?? index}`,
+      capturedAt: row.completedAt?.toISOString() ?? null,
+      leaders: [{
+        rank: 1,
+        submissionId: row.submissionId,
+        userId: row.userId,
+        username: row.username,
+        teamName: row.teamName ?? null,
+        compositeScore: row.compositeScore ?? 0,
+        speedScore: row.speedScore ?? 0,
+        stabilityScore: row.stabilityScore ?? 0,
+        correctnessScore: row.correctnessScore ?? 0,
+      }],
+    })),
+  });
 });
 
 function average(values: Array<number | null | undefined>): number | null {

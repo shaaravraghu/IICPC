@@ -12,6 +12,7 @@ import {
 } from "./middlewares/clerkProxyMiddleware";
 
 const app: Express = express();
+const allowedOrigin = process.env.FRONTEND_ORIGIN ?? true;
 
 app.use(
   pinoHttp({
@@ -35,7 +36,7 @@ app.use(
 
 app.use(CLERK_PROXY_PATH, clerkProxyMiddleware());
 
-app.use(cors({ credentials: true, origin: true }));
+app.use(cors({ credentials: true, origin: allowedOrigin }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
