@@ -7,9 +7,12 @@ This folder contains the deployability scaffold for the Rust backend.
 | Path | Purpose |
 |---|---|
 | `kubernetes/base` | Namespace and RBAC resources shared by the platform |
-| `kubernetes/kafka` | Kafka topic manifests for pipeline communication |
+| `kubernetes/kafka` | Strimzi Kafka cluster and topic manifests for pipeline communication |
 | `kubernetes/timescale` | TimescaleDB manifests and SQL initialization |
-| `kubernetes/bots` | Deployments for the distributed bot services |
+| `kubernetes/bots` | Deployments, services, and HPAs for the distributed Rust services |
+| `kubernetes/configmap.yaml` | Shared bot-weight/topic config and service secrets |
+| `kubernetes/ingress.yaml` | API/WebSocket ingress routing to the Rust gateway |
+| `docker` | Multi-stage Dockerfiles and a local compose stack |
 | `scripts/deploy.sh` | Simple script to apply the current Kubernetes manifests |
 
 ## Intent

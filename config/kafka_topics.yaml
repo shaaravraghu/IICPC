@@ -1,4 +1,7 @@
 topics:
+  - name: submissions
+    partitions: 12
+    replicationFactor: 3
   - name: sys.market_data.live
     partitions: 12
     replicationFactor: 3
@@ -19,4 +22,7 @@ topics:
     replicationFactor: 3
   - name: sys.telemetry.metrics
     partitions: 12
+    replicationFactor: 3
+  - name: leaderboard-updates
+    partitions: 4
     replicationFactor: 3

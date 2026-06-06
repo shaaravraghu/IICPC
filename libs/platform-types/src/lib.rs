@@ -66,7 +66,7 @@ impl FunctionCall {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct FunctionParamDef {
     pub name: &'static str,
     pub type_name: &'static str,
@@ -74,7 +74,7 @@ pub struct FunctionParamDef {
     pub optional: bool,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct TechnicalMetricDefinition {
     pub key: &'static str,
     pub display_name: &'static str,
@@ -85,7 +85,7 @@ pub struct TechnicalMetricDefinition {
     pub params: &'static [FunctionParamDef],
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct FundamentalMetricDefinition {
     pub key: &'static str,
     pub display_name: &'static str,
@@ -96,7 +96,7 @@ pub struct FundamentalMetricDefinition {
     pub params: &'static [FunctionParamDef],
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct SentimentMetricDefinition {
     pub key: &'static str,
     pub display_name: &'static str,
@@ -209,7 +209,7 @@ pub enum PipelineEvent {
 
 // --- Kafka message envelope ---
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct PipelineMessage {
     pub run_id: String,
     pub submission_id: String,
@@ -217,7 +217,7 @@ pub struct PipelineMessage {
     pub payload: PipelinePayload,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum PipelinePayload {
     /// Initial submission with strategy manifest and asset universe
     SubmissionCreated {
@@ -258,7 +258,7 @@ pub enum PipelinePayload {
     },
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct AssetScore {
     pub symbol: String,
     pub score: f64,

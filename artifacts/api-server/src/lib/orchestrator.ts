@@ -1,9 +1,10 @@
 import { randomUUID } from "crypto";
-import { and, eq } from "drizzle-orm";
+import { and, desc, eq, isNotNull } from "drizzle-orm";
 import {
   assetScoresTable,
   botEventsTable,
   db,
+  submissionsTable,
   testRunsDetailedTable,
   testRunsTable,
 } from "@workspace/db";
@@ -24,7 +25,7 @@ import {
 } from "./bots/sentimentBot";
 import { simulateExecution } from "./executionSimulator";
 import { logger } from "./logger";
-import { emitLeaderboard, emitRunStatus } from "./realtime";
+import { emitLeaderboardUpdate, emitPipelineProgress } from "./websocket";
 
 export const DEFAULT_ASSETS = [
   "AAPL",
@@ -500,6 +501,7 @@ async function markRunLayer(testRunId: string, layer: PipelineLayer, progressPct
     .update(testRunsTable)
     .set({ status: "running", currentStage: layer, progressPct })
     .where(eq(testRunsTable.id, testRunId));
+  await emitCurrentRunProgress(testRunId);
 }
 
 async function updateDetailedRun(
@@ -510,7 +512,7 @@ async function updateDetailedRun(
     .update(testRunsDetailedTable)
     .set({ ...values, updatedAt: new Date() })
     .where(eq(testRunsDetailedTable.testRunId, testRunId));
-  await emitRunStatus(testRunId);
+  await emitCurrentRunProgress(testRunId);
 }
 
 async function completeRun(testRunId: string): Promise<void> {
@@ -525,6 +527,8 @@ async function completeRun(testRunId: string): Promise<void> {
     .update(testRunsTable)
     .set({ status: "completed", currentStage: "completed", progressPct: 100, completedAt })
     .where(eq(testRunsTable.id, testRunId));
+  await emitCurrentRunProgress(testRunId);
+  await emitCurrentLeaderboard();
 }
 
 async function failRun(testRunId: string, err: unknown): Promise<void> {
@@ -540,6 +544,63 @@ async function failRun(testRunId: string, err: unknown): Promise<void> {
     .update(testRunsTable)
     .set({ status: "failed", currentStage: `failed: ${message}`, completedAt: new Date() })
     .where(eq(testRunsTable.id, testRunId));
+  await emitCurrentRunProgress(testRunId);
+}
+
+async function emitCurrentRunProgress(testRunId: string): Promise<void> {
+  const [run] = await db
+    .select()
+    .from(testRunsDetailedTable)
+    .where(eq(testRunsDetailedTable.testRunId, testRunId));
+  if (!run) return;
+
+  emitPipelineProgress({
+    testRunId: run.testRunId,
+    submissionId: run.submissionId,
+    status: run.status,
+    currentLayer: run.currentLayer,
+    progressPct: run.progressPct,
+    assetsTotal: run.assetsTotal,
+    assetsAnalyzed: run.assetsAnalyzed,
+    technicalPassCount: run.technicalPassCount,
+    fundamentalPassCount: run.fundamentalPassCount,
+    sentimentPassCount: run.sentimentPassCount,
+    sentimentAvgScore: run.sentimentAvgScore,
+    executionAvgScore: run.executionAvgScore,
+    paperAvgScore: run.paperAvgScore,
+    updatedAt: run.updatedAt.toISOString(),
+    completedAt: run.completedAt?.toISOString() ?? null,
+  });
+}
+
+async function emitCurrentLeaderboard(): Promise<void> {
+  const rows = await db
+    .select({
+      userId: submissionsTable.userId,
+      username: submissionsTable.username,
+      teamName: submissionsTable.teamName,
+      submissionId: submissionsTable.id,
+      compositeScore: submissionsTable.compositeScore,
+      speedScore: submissionsTable.speedScore,
+      stabilityScore: submissionsTable.stabilityScore,
+      correctnessScore: submissionsTable.correctnessScore,
+      p99Latency: submissionsTable.p99Latency,
+      tps: submissionsTable.tps,
+      language: submissionsTable.language,
+      completedAt: submissionsTable.completedAt,
+    })
+    .from(submissionsTable)
+    .where(and(eq(submissionsTable.status, "completed"), isNotNull(submissionsTable.compositeScore)))
+    .orderBy(desc(submissionsTable.compositeScore));
+
+  emitLeaderboardUpdate({
+    rows: rows.map((row, index) => ({
+      rank: index + 1,
+      ...row,
+      completedAt: row.completedAt?.toISOString() ?? null,
+    })),
+    emittedAt: new Date().toISOString(),
+  });
 }
 
 function isValidAssetSymbol(symbol: string): boolean {

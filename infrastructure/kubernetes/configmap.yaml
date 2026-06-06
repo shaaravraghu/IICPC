@@ -1,0 +1,80 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: iicpc-service-secrets
+  namespace: iicpc-platform
+type: Opaque
+stringData:
+  database-url: postgres://iicpc:iicpc-local-dev@timescale:5432/iicpc
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: iicpc-platform-config
+  namespace: iicpc-platform
+  labels:
+    app.kubernetes.io/name: iicpc-platform-config
+    app.kubernetes.io/part-of: iicpc
+data:
+  bot_weights.yaml: |
+    technical:
+      momentum-breakout:
+        trend_strength_adx: 0.35
+        momentum_rate_of_change: 0.35
+        vwap_distance: 0.30
+      trend-confirmation:
+        market_structure_analysis: 0.45
+        relative_strength_vs_benchmark: 0.35
+        macd_histogram_slope: 0.20
+    fundamental:
+      quality-compounders:
+        return_on_invested_capital: 0.40
+        free_cash_flow_margin: 0.30
+        gross_margin: 0.30
+      reliability-check:
+        earnings_quality_ratio: 0.35
+        debt_to_ebitda: 0.25
+        interest_coverage_ratio: 0.25
+        current_ratio: 0.15
+    sentiment:
+      news_sentiment_analysis: 20
+      options_market_sentiment: 15
+      institutional_fund_flow_analysis: 15
+      analyst_rating_sentiment: 10
+      earnings_call_sentiment: 15
+      technical_sentiment_indicators: 10
+      alternative_data_sentiment: 10
+      prediction_market_analysis: 5
+    leaderboard:
+      signal_score: 40
+      execution_score: 35
+      paper_trading_score: 25
+  kafka_topics.yaml: |
+    topics:
+      - name: submissions
+        partitions: 12
+        replicationFactor: 3
+      - name: sys.market_data.live
+        partitions: 12
+        replicationFactor: 3
+      - name: stage1.technical.out
+        partitions: 12
+        replicationFactor: 3
+      - name: stage2.fundamental.out
+        partitions: 8
+        replicationFactor: 3
+      - name: stage3.sentiment.out
+        partitions: 8
+        replicationFactor: 3
+      - name: stage4.execution.out
+        partitions: 8
+        replicationFactor: 3
+      - name: stage5.paper_trading.out
+        partitions: 4
+        replicationFactor: 3
+      - name: sys.telemetry.metrics
+        partitions: 12
+        replicationFactor: 3
+      - name: leaderboard-updates
+        partitions: 4
+        replicationFactor: 3
