@@ -118,6 +118,35 @@ router.post("/paper-trading/execute", async (req, res): Promise<void> => {
   });
 });
 
+// GET /paper-trading/:testRunId/positions
+router.get("/paper-trading/:testRunId/positions", async (req, res): Promise<void> => {
+  const testRunId = req.params["testRunId"];
+  if (!testRunId) {
+    res.status(400).json({ error: "testRunId is required" });
+    return;
+  }
+
+  const positions = await db
+    .select()
+    .from(paperTradePositionsTable)
+    .where(eq(paperTradePositionsTable.testRunId, testRunId))
+    .orderBy(desc(paperTradePositionsTable.createdAt));
+
+  res.json({
+    testRunId,
+    positions: positions.map((position) => ({
+      symbol: position.symbol,
+      side: position.side,
+      quantity: position.quantity,
+      entryPrice: position.entryPrice,
+      exitPrice: position.exitPrice,
+      pnl: position.pnl,
+      pnlPct: position.pnlPct,
+      status: position.status,
+    })),
+  });
+});
+
 function parseExecutePaperTradingBody(
   body: unknown
 ): { ok: true; data: ExecutePaperTradingRequest } | { ok: false; error: string } {

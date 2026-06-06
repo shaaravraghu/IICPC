@@ -18,14 +18,21 @@ fundamental:
     interest_coverage_ratio: 0.25
     current_ratio: 0.15
 sentiment:
-  news_sentiment_analysis: 20
-  options_market_sentiment: 15
-  institutional_fund_flow_analysis: 15
-  analyst_rating_sentiment: 10
-  earnings_call_sentiment: 15
-  technical_sentiment_indicators: 10
-  alternative_data_sentiment: 10
-  prediction_market_analysis: 5
+  news_sentiment_analysis: 10
+  social_media_sentiment: 8
+  search_trend_analysis: 5
+  options_market_sentiment: 10
+  institutional_fund_flow_analysis: 10
+  analyst_rating_sentiment: 8
+  earnings_call_sentiment: 10
+  insider_trading_analysis: 6
+  technical_sentiment_indicators: 7
+  consumer_review_sentiment: 4
+  supply_chain_sentiment: 4
+  influencer_community_forum_analysis: 4
+  macroeconomic_sentiment_analysis: 5
+  alternative_data_sentiment: 5
+  prediction_market_analysis: 4
 leaderboard:
   signal_score: 40
   execution_score: 35

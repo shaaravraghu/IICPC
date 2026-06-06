@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { Activity, Code2, Trophy, BookOpen, UserCircle, LogOut } from "lucide-react";
+import { Activity, Code2, Trophy, BookOpen, UserCircle, LogOut, TrendingUp } from "lucide-react";
 import { useClerk } from "@clerk/react";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -23,6 +23,7 @@ const menuItems = [
   { icon: Activity,    label: "Monitor",     path: "/" },
   { icon: Code2,       label: "Editor",      path: "/editor" },
   { icon: Trophy,      label: "Leaderboard", path: "/leaderboard" },
+  { icon: TrendingUp,  label: "Paper Trading", path: "/paper-trading" },
   { icon: BookOpen,    label: "Learn",       path: "/learn" },
   { icon: UserCircle,  label: "Profile",     path: "/profile" },
 ];
