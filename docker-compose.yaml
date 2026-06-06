@@ -79,6 +79,8 @@ services:
 
   api-gateway:
     <<: *rust-service
+    ports:
+      - "8080:8080"
     command: sh -lc "apt-get update && apt-get install -y --no-install-recommends cmake pkg-config libssl-dev && cargo run -p api-gateway"
     depends_on:
       kafka:
@@ -147,6 +149,12 @@ services:
       PORT: 3001
       CLERK_PUBLISHABLE_KEY: ${CLERK_PUBLISHABLE_KEY:-}
       CLERK_SECRET_KEY: ${CLERK_SECRET_KEY:-}
+      RUST_PIPELINE_URL: http://api-gateway:8080
+    depends_on:
+      timescaledb:
+        condition: service_healthy
+      api-gateway:
+        condition: service_started
     command: sh -lc "corepack enable && pnpm install --frozen-lockfile && pnpm --filter @workspace/db push && pnpm --filter @workspace/api-server dev"
 
   frontend:
