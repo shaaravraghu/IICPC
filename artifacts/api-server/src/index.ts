@@ -1,6 +1,5 @@
 import { createServer } from "node:http";
 import app from "./app";
-import { createServer } from "http";
 import { logger } from "./lib/logger";
 import { setupWebSocketServer, startKafkaLeaderboardForwarder } from "./lib/websocket";
 
