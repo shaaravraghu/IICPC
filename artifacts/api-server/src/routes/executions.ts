@@ -8,6 +8,7 @@ import {
 } from "@workspace/db";
 import { DEFAULT_ASSETS, initializeExecutionRun, runPipeline } from "../lib/orchestrator";
 import { emitPipelineProgress } from "../lib/websocket";
+import { submitToRustPipeline } from "../lib/rustPipelineBridge";
 
 const router: IRouter = Router();
 
@@ -52,6 +53,10 @@ router.post("/executions/start", async (req, res): Promise<void> => {
     progressPct: 0,
     assetsTotal: assets.length,
     assetsAnalyzed: 0,
+  });
+
+  submitToRustPipeline(testRunId, submissionId, null, assets).catch((err: unknown) => {
+    console.error("failed to forward execution to Rust pipeline", err);
   });
 
   runPipeline(testRunId, assets).catch((err: unknown) => {
