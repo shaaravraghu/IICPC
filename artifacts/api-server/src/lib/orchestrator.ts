@@ -371,7 +371,7 @@ async function paperLayer(testRunId: string, assets: AssetCandidate[]): Promise<
     paperAvgScore: average(scored.map((asset) => asset.paperScore ?? 0)),
     progressPct: 99,
   });
-  await emitLeaderboard(testRunId);
+  await emitCurrentLeaderboard();
 
   return ranked;
 }
