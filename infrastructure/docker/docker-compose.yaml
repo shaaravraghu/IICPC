@@ -1,0 +1,170 @@
+services:
+  kafka:
+    image: bitnami/kafka:3.7
+    environment:
+      KAFKA_CFG_NODE_ID: 1
+      KAFKA_CFG_PROCESS_ROLES: broker,controller
+      KAFKA_CFG_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_CFG_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
+      KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_CFG_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CFG_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE: "true"
+      ALLOW_PLAINTEXT_LISTENER: "yes"
+    ports:
+      - "9092:9092"
+
+  timescaledb:
+    image: timescale/timescaledb:latest-pg16
+    environment:
+      POSTGRES_DB: iicpc
+      POSTGRES_USER: iicpc
+      POSTGRES_PASSWORD: iicpc-local-dev
+    ports:
+      - "5432:5432"
+    volumes:
+      - timescale-data:/var/lib/postgresql/data
+      - ../kubernetes/timescale/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+
+  api-gateway:
+    image: iicpc/api-gateway:local
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/rust-service.Dockerfile
+      args:
+        SERVICE: api-gateway
+    environment:
+      PORT: 8080
+      KAFKA_BROKERS: kafka:9092
+      DATABASE_URL: postgres://iicpc:iicpc-local-dev@timescaledb:5432/iicpc
+      RUST_LOG: info
+    depends_on:
+      - kafka
+      - timescaledb
+    ports:
+      - "8080:8080"
+
+  technical-agents:
+    image: iicpc/technical-agents:local
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/rust-service.Dockerfile
+      args:
+        SERVICE: technical-agents
+    environment:
+      PORT: 8081
+      KAFKA_BROKERS: kafka:9092
+      DATABASE_URL: postgres://iicpc:iicpc-local-dev@timescaledb:5432/iicpc
+      RUST_LOG: info
+    depends_on:
+      - kafka
+      - timescaledb
+
+  fundamental-agents:
+    image: iicpc/fundamental-agents:local
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/rust-service.Dockerfile
+      args:
+        SERVICE: fundamental-agents
+    environment:
+      PORT: 8082
+      KAFKA_BROKERS: kafka:9092
+      DATABASE_URL: postgres://iicpc:iicpc-local-dev@timescaledb:5432/iicpc
+      RUST_LOG: info
+    depends_on:
+      - kafka
+      - timescaledb
+
+  sentiment-agents:
+    image: iicpc/sentiment-agents:local
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/rust-service.Dockerfile
+      args:
+        SERVICE: sentiment-agents
+    environment:
+      PORT: 8083
+      KAFKA_BROKERS: kafka:9092
+      DATABASE_URL: postgres://iicpc:iicpc-local-dev@timescaledb:5432/iicpc
+      RUST_LOG: info
+    depends_on:
+      - kafka
+      - timescaledb
+
+  execution-sim:
+    image: iicpc/execution-sim:local
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/rust-service.Dockerfile
+      args:
+        SERVICE: execution-sim
+    environment:
+      PORT: 8084
+      KAFKA_BROKERS: kafka:9092
+      DATABASE_URL: postgres://iicpc:iicpc-local-dev@timescaledb:5432/iicpc
+      RUST_LOG: info
+    depends_on:
+      - kafka
+      - timescaledb
+
+  paper-trading:
+    image: iicpc/paper-trading:local
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/rust-service.Dockerfile
+      args:
+        SERVICE: paper-trading
+    environment:
+      PORT: 8085
+      KAFKA_BROKERS: kafka:9092
+      DATABASE_URL: postgres://iicpc:iicpc-local-dev@timescaledb:5432/iicpc
+      RUST_LOG: info
+    depends_on:
+      - kafka
+      - timescaledb
+
+  telemetry-judge:
+    image: iicpc/telemetry-judge:local
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/rust-service.Dockerfile
+      args:
+        SERVICE: telemetry-judge
+    environment:
+      PORT: 8086
+      KAFKA_BROKERS: kafka:9092
+      DATABASE_URL: postgres://iicpc:iicpc-local-dev@timescaledb:5432/iicpc
+      RUST_LOG: info
+    depends_on:
+      - kafka
+      - timescaledb
+
+  api-server:
+    image: iicpc/api-server:local
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/api-server.Dockerfile
+    environment:
+      PORT: 3000
+      DATABASE_URL: postgres://iicpc:iicpc-local-dev@timescaledb:5432/iicpc
+      NODE_ENV: production
+    depends_on:
+      - timescaledb
+    ports:
+      - "3000:3000"
+
+  frontend:
+    image: iicpc/frontend:local
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/frontend.Dockerfile
+      args:
+        VITE_API_URL: /api
+    depends_on:
+      - api-gateway
+    ports:
+      - "5173:80"
+
+volumes:
+  timescale-data:

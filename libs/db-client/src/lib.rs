@@ -3,6 +3,7 @@ use tokio_postgres::NoTls;
 use chrono::{DateTime, Utc};
 use serde_json::Value;
 
+#[derive(Clone)]
 pub struct DbClient {
     pool: Pool,
 }

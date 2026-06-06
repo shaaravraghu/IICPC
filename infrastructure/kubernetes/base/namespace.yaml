@@ -2,3 +2,8 @@ apiVersion: v1
 kind: Namespace
 metadata:
   name: iicpc-platform
+  labels:
+    app.kubernetes.io/name: iicpc-platform
+    app.kubernetes.io/part-of: iicpc
+    app.kubernetes.io/managed-by: kubectl
+    monitoring: enabled

@@ -147,8 +147,8 @@ async fn main() {
 
                     let final_composite_score = eval_algorithms::composite_score(avg_signal, avg_exec, avg_paper);
 
-                    // Fetch strategy details
-                    let row = match client.query_one("SELECT owner, strategy_id FROM submissions WHERE id = $1", &[&msg.submission_id]).await {
+                    // Fetch strategy details from the stored manifest/code payload.
+                    let row = match client.query_one("SELECT username, code FROM submissions WHERE id = $1", &[&msg.submission_id]).await {
                         Ok(r) => r,
                         Err(e) => {
                             tracing::error!("Failed to fetch strategy owner: {:?}", e);
@@ -156,7 +156,10 @@ async fn main() {
                         }
                     };
                     let owner: String = row.get(0);
-                    let strategy_id: String = row.get(1);
+                    let code: String = row.get(1);
+                    let strategy_id = serde_yaml::from_str::<platform_types::StrategyManifest>(&code)
+                        .map(|strategy| strategy.id)
+                        .unwrap_or_else(|_| msg.submission_id.clone());
 
                     // Write completed run_scores to database
                     if let Err(e) = db.insert_run_score(
