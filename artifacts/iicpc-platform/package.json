@@ -76,6 +76,7 @@
   },
   "dependencies": {
     "@clerk/react": "^6.7.2",
-    "@clerk/themes": "^2.4.57"
+    "@clerk/themes": "^2.4.57",
+    "socket.io-client": "^4.8.1"
   }
 }

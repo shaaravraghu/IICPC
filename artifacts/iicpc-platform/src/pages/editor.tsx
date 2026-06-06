@@ -12,6 +12,8 @@ import {
 } from "@workspace/api-client-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
+import { postJson, fetchJson } from "@/lib/api";
+import { useSocketEvent } from "@/hooks/useWebSocket";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -175,26 +177,6 @@ type ExecutionStatus = {
   completedAt: string | null;
 };
 
-async function postJson<T>(url: string, body: unknown): Promise<T> {
-  const response = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
-  if (!response.ok) {
-    throw new Error(`Request failed with ${response.status}`);
-  }
-  return response.json() as Promise<T>;
-}
-
-async function getJson<T>(url: string): Promise<T> {
-  const response = await fetch(url);
-  if (!response.ok) {
-    throw new Error(`Request failed with ${response.status}`);
-  }
-  return response.json() as Promise<T>;
-}
-
 export default function Editor() {
   const { userId } = useAuth();
   const queryClient = useQueryClient();
@@ -205,6 +187,13 @@ export default function Editor() {
   const [activeTestRunId, setActiveTestRunId] = useState<string | null>(null);
   const [assetUniverse, setAssetUniverse] = useState(DEFAULT_ANALYSIS_ASSETS);
   const [runError, setRunError] = useState<string | null>(null);
+  const {
+    data: liveExecutionStatus,
+    connected: executionSocketConnected,
+  } = useSocketEvent<ExecutionStatus>(
+    ["execution:status", "pipeline:status", "pipeline-progress"],
+    activeTestRunId ? `test-run:${activeTestRunId}` : undefined,
+  );
 
   const createSubmission = useCreateSubmission();
   const runSubmission = useRunSubmission();
@@ -237,10 +226,14 @@ export default function Editor() {
 
   const { data: executionStatus } = useQuery({
     queryKey: ["execution-status", activeTestRunId],
-    queryFn: () => getJson<ExecutionStatus>(`/api/executions/${activeTestRunId}/status`),
+    queryFn: () => fetchJson<ExecutionStatus>(`/api/executions/${activeTestRunId}/status`),
     enabled: !!activeTestRunId,
-    refetchInterval: activeTestRunId ? 2000 : false,
+    refetchInterval: activeTestRunId && !executionSocketConnected ? 2000 : false,
   });
+
+  const currentExecutionStatus = liveExecutionStatus?.testRunId === activeTestRunId
+    ? liveExecutionStatus
+    : executionStatus;
 
   useEffect(() => {
     setCode(STARTER_CODE[language]);
@@ -267,14 +260,14 @@ export default function Editor() {
   };
 
   const stageIndex = (() => {
-    if (!executionStatus) return -1;
-    if (executionStatus.currentLayer === "technical") return 0;
-    if (executionStatus.currentLayer === "fundamental") return 1;
-    if (executionStatus.currentLayer === "sentiment") return 2;
-    if (executionStatus.currentLayer === "execution") return 3;
-    if (executionStatus.currentLayer === "paper") return 4;
-    if (executionStatus.currentLayer === "completed") return 5;
-    if (executionStatus.status === "failed") return -1;
+    if (!currentExecutionStatus) return -1;
+    if (currentExecutionStatus.currentLayer === "technical") return 0;
+    if (currentExecutionStatus.currentLayer === "fundamental") return 1;
+    if (currentExecutionStatus.currentLayer === "sentiment") return 2;
+    if (currentExecutionStatus.currentLayer === "execution") return 3;
+    if (currentExecutionStatus.currentLayer === "paper") return 4;
+    if (currentExecutionStatus.currentLayer === "completed") return 5;
+    if (currentExecutionStatus.status === "failed") return -1;
     return 0;
   })();
 
@@ -361,7 +354,7 @@ export default function Editor() {
                     <div>
                       <div className="flex items-center justify-between mb-3">
                         <span className="text-xs font-mono text-muted-foreground uppercase tracking-widest">Pipeline</span>
-                        {executionStatus?.status === "failed" && (
+                        {currentExecutionStatus?.status === "failed" && (
                           <Badge variant="destructive" className="text-xs">Failed</Badge>
                         )}
                       </div>
@@ -383,21 +376,21 @@ export default function Editor() {
                         ))}
                       </div>
                       {activeSubmission?.status !== "failed" && stageIndex >= 0 && (
-                        <Progress value={executionStatus?.progressPct ?? (stageIndex / 5) * 100} className="mt-4 h-1" />
+                        <Progress value={currentExecutionStatus?.progressPct ?? (stageIndex / 5) * 100} className="mt-4 h-1" />
                       )}
-                      {executionStatus && (
+                      {currentExecutionStatus && (
                         <div className="mt-4 grid grid-cols-3 gap-2 text-xs font-mono">
                           <div className="rounded border border-border bg-card p-2">
                             <div className="uppercase text-muted-foreground/60">Assets</div>
-                            <div>{executionStatus.assetsAnalyzed}/{executionStatus.assetsTotal}</div>
+                            <div>{currentExecutionStatus.assetsAnalyzed}/{currentExecutionStatus.assetsTotal}</div>
                           </div>
                           <div className="rounded border border-border bg-card p-2">
                             <div className="uppercase text-muted-foreground/60">Technical</div>
-                            <div>{executionStatus.technicalPassCount}</div>
+                            <div>{currentExecutionStatus.technicalPassCount}</div>
                           </div>
                           <div className="rounded border border-border bg-card p-2">
                             <div className="uppercase text-muted-foreground/60">Sentiment</div>
-                            <div>{executionStatus.sentimentAvgScore?.toFixed(1) ?? "-"}</div>
+                            <div>{currentExecutionStatus.sentimentAvgScore?.toFixed(1) ?? "-"}</div>
                           </div>
                         </div>
                       )}
