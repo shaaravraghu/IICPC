@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@clerk/react";
 import {
   useCreateSubmission,
@@ -16,137 +16,14 @@ import { postJson, fetchJson } from "@/lib/api";
 import { useSocketEvent } from "@/hooks/useWebSocket";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Play, Upload, ChevronRight, Clock, Zap, CheckSquare, AlertTriangle, Trophy } from "lucide-react";
+import { Play, Upload, ChevronRight, Clock, Zap, CheckSquare, AlertTriangle, Trophy, BookOpen } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
-
-const STARTER_CODE: Record<string, string> = {
-  cpp: `#include <map>
-#include <queue>
-#include <mutex>
-#include <vector>
-#include <cstdint>
-
-// Minimal orderbook matching engine
-// Requirements: handle Limit, Market, Cancel orders
-// Expose via REST: POST /order, DELETE /order/:id, GET /orderbook
-
-struct Order {
-  uint64_t id;
-  bool     is_buy;
-  double   price;
-  uint64_t qty;
-  uint64_t remaining;
-};
-
-class OrderBook {
-  std::map<double, std::queue<Order>, std::greater<double>> bids;
-  std::map<double, std::queue<Order>>                       asks;
-  std::mutex mtx;
-
-public:
-  void add_limit(Order o) {
-    std::lock_guard<std::mutex> lk(mtx);
-    if (o.is_buy) bids[o.price].push(o);
-    else          asks[o.price].push(o);
-    match();
-  }
-
-  void cancel(uint64_t id);
-  void match();
-};
-`,
-  rust: `use std::collections::BTreeMap;
-use std::sync::{Arc, Mutex};
-
-#[derive(Debug, Clone)]
-pub struct Order {
-    pub id: u64,
-    pub is_buy: bool,
-    pub price: u64, // price in ticks
-    pub qty: u64,
-    pub remaining: u64,
-}
-
-#[derive(Debug, Default)]
-pub struct OrderBook {
-    // BTreeMap for price-time priority
-    bids: BTreeMap<u64, Vec<Order>>, // descending
-    asks: BTreeMap<u64, Vec<Order>>, // ascending
-}
-
-impl OrderBook {
-    pub fn add_limit(&mut self, order: Order) {
-        if order.is_buy {
-            self.bids.entry(order.price).or_default().push(order);
-        } else {
-            self.asks.entry(order.price).or_default().push(order);
-        }
-        self.match_orders();
-    }
-
-    fn match_orders(&mut self) {
-        // TODO: implement matching logic
-    }
-}
-`,
-  go: `package main
-
-import (
-  "sync"
-  "container/heap"
-)
-
-type Side int
-const (Buy Side = iota; Sell)
-
-type Order struct {
-  ID        uint64
-  Side      Side
-  Price     float64
-  Qty       uint64
-  Remaining uint64
-  Seq       uint64 // for time-priority
-}
-
-type PriceLevel []Order
-
-type OrderBook struct {
-  mu   sync.Mutex
-  bids *MaxHeap
-  asks *MinHeap
-  seq  uint64
-}
-
-func NewOrderBook() *OrderBook {
-  ob := &OrderBook{bids: &MaxHeap{}, asks: &MinHeap{}}
-  heap.Init(ob.bids)
-  heap.Init(ob.asks)
-  return ob
-}
-
-func (ob *OrderBook) AddLimit(o Order) {
-  ob.mu.Lock()
-  defer ob.mu.Unlock()
-  ob.seq++
-  o.Seq = ob.seq
-  if o.Side == Buy {
-    heap.Push(ob.bids, o)
-  } else {
-    heap.Push(ob.asks, o)
-  }
-  ob.match()
-}
-
-func (ob *OrderBook) match() {
-  // TODO: implement price-time priority matching
-}
-`,
-};
+import { STARTER_STRATEGY_YAML } from "@/lib/starterStrategy";
+import FunctionCatalog from "@/components/FunctionCatalog";
 
 const STAGE_LABELS = ["Technical", "Fundamental", "Sentiment", "Execution", "Paper", "Done"];
 const DEFAULT_ANALYSIS_ASSETS = "AAPL,MSFT,NVDA,GOOGL,AMZN,META,TSLA,JPM,UNH,V";
@@ -181,8 +58,9 @@ export default function Editor() {
   const { userId } = useAuth();
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
-  const [language, setLanguage] = useState<"cpp" | "rust" | "go">("go");
-  const [code, setCode] = useState(STARTER_CODE.go);
+  const [code, setCode] = useState(STARTER_STRATEGY_YAML);
+  const [showCatalog, setShowCatalog] = useState(true);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [activeSubmissionId, setActiveSubmissionId] = useState<string | null>(null);
   const [activeTestRunId, setActiveTestRunId] = useState<string | null>(null);
   const [assetUniverse, setAssetUniverse] = useState(DEFAULT_ANALYSIS_ASSETS);
@@ -235,14 +113,32 @@ export default function Editor() {
     ? liveExecutionStatus
     : executionStatus;
 
-  useEffect(() => {
-    setCode(STARTER_CODE[language]);
-  }, [language]);
+  const insertSnippet = (snippet: string) => {
+    const textarea = textareaRef.current;
+    if (!textarea) {
+      setCode((prev) => prev + "\n" + snippet);
+      return;
+    }
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const text = textarea.value;
+    const before = text.substring(0, start);
+    const after = text.substring(end, text.length);
+
+    const newCode = before + snippet + after;
+    setCode(newCode);
+
+    setTimeout(() => {
+      textarea.focus();
+      textarea.selectionStart = textarea.selectionEnd = start + snippet.length;
+    }, 0);
+  };
 
   const handleSubmit = async () => {
     setRunError(null);
     const sub = await createSubmission.mutateAsync({
-      data: { language, filename: `solution.${language === "cpp" ? "cpp" : language}`, code }
+      data: { language: "yaml", filename: "strategy.yaml", code }
     });
     setActiveSubmissionId(sub.id);
     await queryClient.invalidateQueries({ queryKey: getListSubmissionsQueryKey() });
@@ -279,30 +175,34 @@ export default function Editor() {
       <div className="flex items-center justify-between px-6 py-3 border-b border-border bg-card shrink-0">
         <div className="flex items-center gap-4">
           <span className="font-mono text-sm font-semibold text-muted-foreground uppercase tracking-widest">Signal Analysis</span>
-          <Select value={language} onValueChange={(v) => setLanguage(v as "cpp" | "rust" | "go")}>
-            <SelectTrigger className="w-28 h-8 text-xs font-mono" data-testid="select-language">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="cpp">C++</SelectItem>
-              <SelectItem value="rust">Rust</SelectItem>
-              <SelectItem value="go">Go</SelectItem>
-            </SelectContent>
-          </Select>
+          <Badge variant="outline" className="font-mono text-xs px-2.5 py-1 bg-primary/10 border-primary/20 text-primary">
+            Strategy Manifest (YAML)
+          </Badge>
         </div>
-        <Button
-          onClick={handleSubmit}
-          disabled={createSubmission.isPending || runSubmission.isPending}
-          className="h-8 text-xs font-mono uppercase tracking-wider gap-2"
-          data-testid="button-submit"
-        >
-          <Upload className="h-3.5 w-3.5" />
-          {createSubmission.isPending || runSubmission.isPending ? "Starting..." : "Run Analysis"}
-        </Button>
+        <div className="flex items-center gap-3">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowCatalog(!showCatalog)}
+            className={`h-8 text-xs font-mono uppercase tracking-wider gap-2 ${showCatalog ? "bg-accent text-accent-foreground" : ""}`}
+          >
+            <BookOpen className="h-3.5 w-3.5" />
+            {showCatalog ? "Hide Library" : "Show Library"}
+          </Button>
+          <Button
+            onClick={handleSubmit}
+            disabled={createSubmission.isPending || runSubmission.isPending}
+            className="h-8 text-xs font-mono uppercase tracking-wider gap-2"
+            data-testid="button-submit"
+          >
+            <Upload className="h-3.5 w-3.5" />
+            {createSubmission.isPending || runSubmission.isPending ? "Starting..." : "Run Analysis"}
+          </Button>
+        </div>
       </div>
 
       <ResizablePanelGroup direction="horizontal" className="flex-1 min-h-0">
-        <ResizablePanel defaultSize={55} minSize={30}>
+        <ResizablePanel defaultSize={40} minSize={20}>
           <div className="h-full flex flex-col">
             <div className="px-4 py-2 border-b border-border bg-card/50 flex items-center gap-2 shrink-0">
               <div className="h-2 w-2 rounded-full bg-primary" />
@@ -318,6 +218,7 @@ export default function Editor() {
               />
             </div>
             <textarea
+              ref={textareaRef}
               data-testid="input-code"
               value={code}
               onChange={(e) => setCode(e.target.value)}
@@ -332,7 +233,7 @@ export default function Editor() {
 
         <ResizableHandle withHandle />
 
-        <ResizablePanel defaultSize={45} minSize={25}>
+        <ResizablePanel defaultSize={30} minSize={20}>
           <div className="h-full flex flex-col overflow-hidden">
             <div className="px-4 py-2 border-b border-border bg-card/50 flex items-center gap-2 shrink-0">
               <div className="h-2 w-2 rounded-full bg-chart-2" />
@@ -523,6 +424,15 @@ export default function Editor() {
             </ScrollArea>
           </div>
         </ResizablePanel>
+
+        {showCatalog && (
+          <>
+            <ResizableHandle withHandle />
+            <ResizablePanel defaultSize={30} minSize={20}>
+              <FunctionCatalog onInsertSnippet={insertSnippet} />
+            </ResizablePanel>
+          </>
+        )}
       </ResizablePanelGroup>
     </div>
   );

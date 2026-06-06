@@ -42,6 +42,7 @@ export const SubmissionLanguage = {
   cpp: 'cpp',
   rust: 'rust',
   go: 'go',
+  yaml: 'yaml',
 } as const;
 
 export type SubmissionStatus = typeof SubmissionStatus[keyof typeof SubmissionStatus];
@@ -90,6 +91,7 @@ export const SubmissionInputLanguage = {
   cpp: 'cpp',
   rust: 'rust',
   go: 'go',
+  yaml: 'yaml',
 } as const;
 
 export interface SubmissionInput {
