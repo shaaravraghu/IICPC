@@ -9,7 +9,7 @@ use axum::{
     Json, Router,
 };
 use db_client::DbClient;
-use kafka_utils::{KafkaProducer, Topic};
+use kafka_utils::{KafkaConsumer, KafkaProducer, Topic};
 use platform_types::{LeaderboardRow, PipelineMessage, StrategyManifest};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
@@ -272,7 +272,7 @@ async fn ws_leaderboard(
     ws: WebSocketUpgrade,
     State(state): State<AppState>,
 ) -> impl IntoResponse {
-    ws.on_upgrade(move |socket| websocket_leaderboard_snapshot(socket, state))
+    ws.on_upgrade(move |socket| websocket_leaderboard_stream(socket, state))
 }
 
 async fn ws_pipeline(
@@ -280,10 +280,10 @@ async fn ws_pipeline(
     State(state): State<AppState>,
     Path(run_id): Path<String>,
 ) -> impl IntoResponse {
-    ws.on_upgrade(move |socket| websocket_pipeline_snapshot(socket, state, run_id))
+    ws.on_upgrade(move |socket| websocket_pipeline_stream(socket, state, run_id))
 }
 
-async fn websocket_leaderboard_snapshot(mut socket: WebSocket, state: AppState) {
+async fn websocket_leaderboard_stream(mut socket: WebSocket, state: AppState) {
     let payload = match state.db.fetch_leaderboard().await {
         Ok(rows) => json!({
             "type": "leaderboard_snapshot",
@@ -299,21 +299,105 @@ async fn websocket_leaderboard_snapshot(mut socket: WebSocket, state: AppState) 
                 }
             ).collect::<Vec<_>>()
         }),
-        Err(error) => json!({ "type": "error", "code": "db_leaderboard", "message": error }),
+        Err(error) => json!({ "type": "error", "code": "db_leaderboard", "message": error.to_string() }),
     };
 
-    let _ = socket.send(Message::Text(payload.to_string())).await;
-    while socket.recv().await.is_some() {}
+    if socket.send(Message::Text(payload.to_string())).await.is_err() {
+        return;
+    }
+
+    let brokers = env::var("KAFKA_BROKERS").unwrap_or_else(|_| "localhost:9092".to_string());
+    let group_id = format!("ws-lb-{}", Uuid::new_v4());
+    let consumer = KafkaConsumer::new(&brokers, &group_id, &[Topic::LeaderboardUpdates]);
+
+    loop {
+        tokio::select! {
+            client_msg = socket.recv() => {
+                match client_msg {
+                    Some(Ok(_)) => {}
+                    _ => break,
+                }
+            }
+            kafka_res = consumer.consume() => {
+                match kafka_res {
+                    Ok((_key, message)) => {
+                        if let Ok(json_str) = serde_json::to_string(&message) {
+                            if socket.send(Message::Text(json_str)).await.is_err() {
+                                break;
+                            }
+                        }
+                    }
+                    Err(e) => {
+                        tracing::error!("error consuming leaderboard update: {}", e);
+                    }
+                }
+            }
+        }
+    }
 }
 
-async fn websocket_pipeline_snapshot(mut socket: WebSocket, state: AppState, run_id: String) {
-    let payload = match pipeline_status_value(&state, &run_id).await {
+async fn websocket_pipeline_stream(mut socket: WebSocket, state: AppState, run_id: String) {
+    let initial_payload = match pipeline_status_value(&state, &run_id).await {
         Ok(status) => json!({ "type": "pipeline_snapshot", "status": status }),
         Err((_status, Json(error))) => json!({ "type": "error", "error": error }),
     };
 
-    let _ = socket.send(Message::Text(payload.to_string())).await;
-    while socket.recv().await.is_some() {}
+    if socket.send(Message::Text(initial_payload.to_string())).await.is_err() {
+        return;
+    }
+
+    let brokers = env::var("KAFKA_BROKERS").unwrap_or_else(|_| "localhost:9092".to_string());
+    let group_id = format!("ws-pipe-{}", Uuid::new_v4());
+    let consumer = KafkaConsumer::new(&brokers, &group_id, &[Topic::TelemetryMetrics]);
+
+    let mut poll_interval = tokio::time::interval(tokio::time::Duration::from_secs(2));
+    poll_interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
+
+    loop {
+        tokio::select! {
+            client_msg = socket.recv() => {
+                match client_msg {
+                    Some(Ok(_)) => {}
+                    _ => break,
+                }
+            }
+            _ = poll_interval.tick() => {
+                match pipeline_status_value(&state, &run_id).await {
+                    Ok(status) => {
+                        let status_str = status.get("status").and_then(|v| v.as_str()).unwrap_or("");
+                        let payload = json!({ "type": "pipeline_status", "status": status });
+                        if socket.send(Message::Text(payload.to_string())).await.is_err() {
+                            break;
+                        }
+                        if status_str == "completed" || status_str == "failed" {
+                            break;
+                        }
+                    }
+                    Err((_status, Json(error))) => {
+                        let payload = json!({ "type": "error", "error": error });
+                        let _ = socket.send(Message::Text(payload.to_string())).await;
+                        break;
+                    }
+                }
+            }
+            kafka_res = consumer.consume() => {
+                match kafka_res {
+                    Ok((_key, message)) => {
+                        if message.run_id == run_id {
+                            if let Ok(json_str) = serde_json::to_string(&message) {
+                                if socket.send(Message::Text(json_str)).await.is_err() {
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    Err(e) => {
+                        tracing::error!("error consuming telemetry metric: {}", e);
+                    }
+                }
+            }
+        }
+    }
 }
 
 fn api_error(status: StatusCode, code: &str, message: impl ToString) -> ApiError {

@@ -75,7 +75,7 @@ export const ListSubmissionsResponseItem = zod.object({
   "userId": zod.string(),
   "username": zod.string().optional(),
   "teamName": zod.string().nullish(),
-  "language": zod.enum(['cpp', 'rust', 'go']),
+  "language": zod.enum(['cpp', 'rust', 'go', 'yaml']),
   "filename": zod.string().optional(),
   "status": zod.enum(['pending', 'building', 'running', 'completed', 'failed']),
   "speedScore": zod.number().nullish(),
@@ -95,7 +95,7 @@ export const ListSubmissionsResponse = zod.array(ListSubmissionsResponseItem)
  * @summary Upload a new code submission
  */
 export const CreateSubmissionBody = zod.object({
-  "language": zod.enum(['cpp', 'rust', 'go']),
+  "language": zod.enum(['cpp', 'rust', 'go', 'yaml']),
   "filename": zod.string(),
   "code": zod.string()
 })
@@ -113,7 +113,7 @@ export const GetSubmissionResponse = zod.object({
   "userId": zod.string(),
   "username": zod.string().optional(),
   "teamName": zod.string().nullish(),
-  "language": zod.enum(['cpp', 'rust', 'go']),
+  "language": zod.enum(['cpp', 'rust', 'go', 'yaml']),
   "filename": zod.string().optional(),
   "status": zod.enum(['pending', 'building', 'running', 'completed', 'failed']),
   "speedScore": zod.number().nullish(),

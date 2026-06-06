@@ -167,6 +167,7 @@ services:
       PORT: 3000
       BASE_PATH: /
       VITE_API_URL: http://localhost:3001
+      VITE_RUST_API_URL: http://localhost:8080
       VITE_CLERK_PUBLISHABLE_KEY: ${VITE_CLERK_PUBLISHABLE_KEY:-pk_test_local}
       VITE_CLERK_PROXY_URL: ${VITE_CLERK_PROXY_URL:-}
     depends_on:

@@ -363,7 +363,7 @@ components:
           type: ["string", "null"]
         language:
           type: string
-          enum: [cpp, rust, go]
+          enum: [cpp, rust, go, yaml]
         filename:
           type: string
         status:
@@ -394,7 +394,7 @@ components:
       properties:
         language:
           type: string
-          enum: [cpp, rust, go]
+          enum: [cpp, rust, go, yaml]
         filename:
           type: string
         code:

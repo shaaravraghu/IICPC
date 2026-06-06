@@ -13,4 +13,5 @@ export const SubmissionInputLanguage = {
   cpp: 'cpp',
   rust: 'rust',
   go: 'go',
+  yaml: 'yaml',
 } as const;
