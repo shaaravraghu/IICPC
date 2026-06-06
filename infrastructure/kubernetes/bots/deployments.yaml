@@ -1,8 +1,80 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
+  name: api-gateway
+  namespace: iicpc-platform
+  labels:
+    app: api-gateway
+    app.kubernetes.io/part-of: iicpc
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: api-gateway
+  template:
+    metadata:
+      labels:
+        app: api-gateway
+        app.kubernetes.io/part-of: iicpc
+    spec:
+      serviceAccountName: iicpc-platform
+      containers:
+        - name: api-gateway
+          image: iicpc/api-gateway:local
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            - name: PORT
+              value: "8080"
+            - name: KAFKA_BROKERS
+              value: iicpc-kafka-kafka-bootstrap:9092
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: iicpc-service-secrets
+                  key: database-url
+            - name: RUST_LOG
+              value: info
+            - name: DEFAULT_ASSETS
+              value: AAPL,MSFT,NVDA,AMZN,GOOGL,META,TSLA,AMD,AVGO,JPM
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: 250m
+              memory: 256Mi
+            limits:
+              cpu: "1"
+              memory: 512Mi
+          volumeMounts:
+            - name: platform-config
+              mountPath: /app/config
+              readOnly: true
+      volumes:
+        - name: platform-config
+          configMap:
+            name: iicpc-platform-config
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
   name: technical-agents
   namespace: iicpc-platform
+  labels:
+    app: technical-agents
+    app.kubernetes.io/part-of: iicpc
 spec:
   replicas: 3
   selector:
@@ -12,18 +84,64 @@ spec:
     metadata:
       labels:
         app: technical-agents
+        app.kubernetes.io/part-of: iicpc
     spec:
       serviceAccountName: iicpc-platform
       containers:
         - name: technical-agents
           image: iicpc/technical-agents:local
           imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8081
+          env:
+            - name: PORT
+              value: "8081"
+            - name: KAFKA_BROKERS
+              value: iicpc-kafka-kafka-bootstrap:9092
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: iicpc-service-secrets
+                  key: database-url
+            - name: RUST_LOG
+              value: info
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: 500m
+              memory: 384Mi
+            limits:
+              cpu: "2"
+              memory: 768Mi
+          volumeMounts:
+            - name: platform-config
+              mountPath: /app/config
+              readOnly: true
+      volumes:
+        - name: platform-config
+          configMap:
+            name: iicpc-platform-config
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: fundamental-agents
   namespace: iicpc-platform
+  labels:
+    app: fundamental-agents
+    app.kubernetes.io/part-of: iicpc
 spec:
   replicas: 2
   selector:
@@ -33,18 +151,64 @@ spec:
     metadata:
       labels:
         app: fundamental-agents
+        app.kubernetes.io/part-of: iicpc
     spec:
       serviceAccountName: iicpc-platform
       containers:
         - name: fundamental-agents
           image: iicpc/fundamental-agents:local
           imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8082
+          env:
+            - name: PORT
+              value: "8082"
+            - name: KAFKA_BROKERS
+              value: iicpc-kafka-kafka-bootstrap:9092
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: iicpc-service-secrets
+                  key: database-url
+            - name: RUST_LOG
+              value: info
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: 500m
+              memory: 384Mi
+            limits:
+              cpu: "2"
+              memory: 768Mi
+          volumeMounts:
+            - name: platform-config
+              mountPath: /app/config
+              readOnly: true
+      volumes:
+        - name: platform-config
+          configMap:
+            name: iicpc-platform-config
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: sentiment-agents
   namespace: iicpc-platform
+  labels:
+    app: sentiment-agents
+    app.kubernetes.io/part-of: iicpc
 spec:
   replicas: 2
   selector:
@@ -54,9 +218,253 @@ spec:
     metadata:
       labels:
         app: sentiment-agents
+        app.kubernetes.io/part-of: iicpc
     spec:
       serviceAccountName: iicpc-platform
       containers:
         - name: sentiment-agents
           image: iicpc/sentiment-agents:local
           imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8083
+          env:
+            - name: PORT
+              value: "8083"
+            - name: KAFKA_BROKERS
+              value: iicpc-kafka-kafka-bootstrap:9092
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: iicpc-service-secrets
+                  key: database-url
+            - name: RUST_LOG
+              value: info
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: 500m
+              memory: 384Mi
+            limits:
+              cpu: "2"
+              memory: 768Mi
+          volumeMounts:
+            - name: platform-config
+              mountPath: /app/config
+              readOnly: true
+      volumes:
+        - name: platform-config
+          configMap:
+            name: iicpc-platform-config
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: execution-sim
+  namespace: iicpc-platform
+  labels:
+    app: execution-sim
+    app.kubernetes.io/part-of: iicpc
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: execution-sim
+  template:
+    metadata:
+      labels:
+        app: execution-sim
+        app.kubernetes.io/part-of: iicpc
+    spec:
+      serviceAccountName: iicpc-platform
+      containers:
+        - name: execution-sim
+          image: iicpc/execution-sim:local
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8084
+          env:
+            - name: PORT
+              value: "8084"
+            - name: KAFKA_BROKERS
+              value: iicpc-kafka-kafka-bootstrap:9092
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: iicpc-service-secrets
+                  key: database-url
+            - name: RUST_LOG
+              value: info
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: 250m
+              memory: 256Mi
+            limits:
+              cpu: "1"
+              memory: 512Mi
+          volumeMounts:
+            - name: platform-config
+              mountPath: /app/config
+              readOnly: true
+      volumes:
+        - name: platform-config
+          configMap:
+            name: iicpc-platform-config
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: paper-trading
+  namespace: iicpc-platform
+  labels:
+    app: paper-trading
+    app.kubernetes.io/part-of: iicpc
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: paper-trading
+  template:
+    metadata:
+      labels:
+        app: paper-trading
+        app.kubernetes.io/part-of: iicpc
+    spec:
+      serviceAccountName: iicpc-platform
+      containers:
+        - name: paper-trading
+          image: iicpc/paper-trading:local
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8085
+          env:
+            - name: PORT
+              value: "8085"
+            - name: KAFKA_BROKERS
+              value: iicpc-kafka-kafka-bootstrap:9092
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: iicpc-service-secrets
+                  key: database-url
+            - name: RUST_LOG
+              value: info
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: 250m
+              memory: 256Mi
+            limits:
+              cpu: "1"
+              memory: 512Mi
+          volumeMounts:
+            - name: platform-config
+              mountPath: /app/config
+              readOnly: true
+      volumes:
+        - name: platform-config
+          configMap:
+            name: iicpc-platform-config
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: telemetry-judge
+  namespace: iicpc-platform
+  labels:
+    app: telemetry-judge
+    app.kubernetes.io/part-of: iicpc
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: telemetry-judge
+  template:
+    metadata:
+      labels:
+        app: telemetry-judge
+        app.kubernetes.io/part-of: iicpc
+    spec:
+      serviceAccountName: iicpc-platform
+      containers:
+        - name: telemetry-judge
+          image: iicpc/telemetry-judge:local
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8086
+          env:
+            - name: PORT
+              value: "8086"
+            - name: KAFKA_BROKERS
+              value: iicpc-kafka-kafka-bootstrap:9092
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: iicpc-service-secrets
+                  key: database-url
+            - name: RUST_LOG
+              value: info
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: 250m
+              memory: 256Mi
+            limits:
+              cpu: "1"
+              memory: 512Mi
+          volumeMounts:
+            - name: platform-config
+              mountPath: /app/config
+              readOnly: true
+      volumes:
+        - name: platform-config
+          configMap:
+            name: iicpc-platform-config

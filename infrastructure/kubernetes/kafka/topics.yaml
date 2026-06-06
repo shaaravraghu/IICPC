@@ -1,6 +1,21 @@
 apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaTopic
 metadata:
+  name: submissions
+  namespace: iicpc-platform
+  labels:
+    strimzi.io/cluster: iicpc-kafka
+spec:
+  topicName: submissions
+  partitions: 12
+  replicas: 3
+  config:
+    retention.ms: 604800000
+    cleanup.policy: delete
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
   name: sys-market-data-live
   namespace: iicpc-platform
   labels:
@@ -9,6 +24,9 @@ spec:
   topicName: sys.market_data.live
   partitions: 12
   replicas: 3
+  config:
+    retention.ms: 86400000
+    cleanup.policy: delete
 ---
 apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaTopic
@@ -21,6 +39,9 @@ spec:
   topicName: stage1.technical.out
   partitions: 12
   replicas: 3
+  config:
+    retention.ms: 604800000
+    cleanup.policy: delete
 ---
 apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaTopic
@@ -33,6 +54,9 @@ spec:
   topicName: stage2.fundamental.out
   partitions: 8
   replicas: 3
+  config:
+    retention.ms: 604800000
+    cleanup.policy: delete
 ---
 apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaTopic
@@ -45,6 +69,39 @@ spec:
   topicName: stage3.sentiment.out
   partitions: 8
   replicas: 3
+  config:
+    retention.ms: 604800000
+    cleanup.policy: delete
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: stage4-execution-out
+  namespace: iicpc-platform
+  labels:
+    strimzi.io/cluster: iicpc-kafka
+spec:
+  topicName: stage4.execution.out
+  partitions: 8
+  replicas: 3
+  config:
+    retention.ms: 604800000
+    cleanup.policy: delete
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: stage5-paper-trading-out
+  namespace: iicpc-platform
+  labels:
+    strimzi.io/cluster: iicpc-kafka
+spec:
+  topicName: stage5.paper_trading.out
+  partitions: 4
+  replicas: 3
+  config:
+    retention.ms: 604800000
+    cleanup.policy: delete
 ---
 apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaTopic
@@ -57,3 +114,21 @@ spec:
   topicName: sys.telemetry.metrics
   partitions: 12
   replicas: 3
+  config:
+    retention.ms: 2592000000
+    cleanup.policy: delete
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: leaderboard-updates
+  namespace: iicpc-platform
+  labels:
+    strimzi.io/cluster: iicpc-kafka
+spec:
+  topicName: leaderboard-updates
+  partitions: 4
+  replicas: 3
+  config:
+    retention.ms: 604800000
+    cleanup.policy: delete

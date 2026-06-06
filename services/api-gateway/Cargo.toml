@@ -13,6 +13,7 @@ strategy-parser = { path = "../../libs/strategy-parser" }
 tokio = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
+serde_yaml = { workspace = true }
 axum = { workspace = true }
 tower-http = { workspace = true }
 tracing = { workspace = true }
