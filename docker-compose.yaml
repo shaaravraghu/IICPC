@@ -12,12 +12,13 @@ x-node-service: &node-service
     DATABASE_URL: postgres://postgres:postgres@timescaledb:5432/iicpc
     MESSAGE_TRANSPORT: kafka
     ORCHESTRATOR: docker-compose
+    CI: "true"
   depends_on:
     timescaledb:
       condition: service_healthy
 
 x-rust-service: &rust-service
-  image: rust:1.82-bookworm
+  image: rust:1.85-bookworm
   working_dir: /workspace
   volumes:
     - .:/workspace
@@ -28,8 +29,8 @@ x-rust-service: &rust-service
     DATABASE_URL: postgres://postgres:postgres@timescaledb:5432/iicpc
     RUST_LOG: info
   depends_on:
-    kafka:
-      condition: service_healthy
+    kafka-init:
+      condition: service_completed_successfully
     timescaledb:
       condition: service_healthy
 
@@ -54,6 +55,7 @@ services:
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
       CLUSTER_ID: MkU3OEVBNTcwNTJENDM2Qk
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
     healthcheck:
       test: ["CMD-SHELL", "kafka-broker-api-versions --bootstrap-server kafka:9092 >/dev/null 2>&1"]
       interval: 10s
@@ -77,20 +79,31 @@ services:
       timeout: 5s
       retries: 20
 
+  kafka-init:
+    image: confluentinc/cp-kafka:7.7.2
+    depends_on:
+      kafka:
+        condition: service_healthy
+    restart: "no"
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        echo "Creating Kafka topics..."
+        for topic in submissions sys.market_data.live stage1.technical.out stage2.fundamental.out stage3.sentiment.out stage4.execution.out stage5.paper_trading.out sys.telemetry.metrics leaderboard-updates; do
+          kafka-topics --bootstrap-server kafka:9092 --create --topic $$topic --partitions 4 --replication-factor 1 --if-not-exists
+        done
+        echo "All topics created:"
+        kafka-topics --bootstrap-server kafka:9092 --list
+
   api-gateway:
     <<: *rust-service
     ports:
       - "8080:8080"
-    command: sh -lc "apt-get update && apt-get install -y --no-install-recommends cmake pkg-config libssl-dev && cargo run -p api-gateway"
-    depends_on:
-      kafka:
-        condition: service_healthy
-      timescaledb:
-        condition: service_healthy
+    command: sh -c "apt-get update && apt-get install -y --no-install-recommends cmake pkg-config libssl-dev && cargo run -p api-gateway"
 
   technical-agents:
     <<: *rust-service
-    command: sh -lc "apt-get update && apt-get install -y --no-install-recommends cmake pkg-config libssl-dev && cargo run -p technical-agents"
+    command: sh -c "apt-get update && apt-get install -y --no-install-recommends cmake pkg-config libssl-dev && cargo run -p technical-agents"
     environment:
       KAFKA_BROKERS: kafka:9092
       DATABASE_URL: postgres://postgres:postgres@timescaledb:5432/iicpc
@@ -98,7 +111,7 @@ services:
 
   fundamental-agents:
     <<: *rust-service
-    command: sh -lc "apt-get update && apt-get install -y --no-install-recommends cmake pkg-config libssl-dev && cargo run -p fundamental-agents"
+    command: sh -c "apt-get update && apt-get install -y --no-install-recommends cmake pkg-config libssl-dev && cargo run -p fundamental-agents"
     environment:
       KAFKA_BROKERS: kafka:9092
       DATABASE_URL: postgres://postgres:postgres@timescaledb:5432/iicpc
@@ -106,7 +119,7 @@ services:
 
   sentiment-agents:
     <<: *rust-service
-    command: sh -lc "apt-get update && apt-get install -y --no-install-recommends cmake pkg-config libssl-dev && cargo run -p sentiment-agents"
+    command: sh -c "apt-get update && apt-get install -y --no-install-recommends cmake pkg-config libssl-dev && cargo run -p sentiment-agents"
     environment:
       KAFKA_BROKERS: kafka:9092
       DATABASE_URL: postgres://postgres:postgres@timescaledb:5432/iicpc
@@ -114,7 +127,7 @@ services:
 
   execution-sim:
     <<: *rust-service
-    command: sh -lc "apt-get update && apt-get install -y --no-install-recommends cmake pkg-config libssl-dev && cargo run -p execution-sim"
+    command: sh -c "apt-get update && apt-get install -y --no-install-recommends cmake pkg-config libssl-dev && cargo run -p execution-sim"
     environment:
       KAFKA_BROKERS: kafka:9092
       DATABASE_URL: postgres://postgres:postgres@timescaledb:5432/iicpc
@@ -122,7 +135,7 @@ services:
 
   paper-trading:
     <<: *rust-service
-    command: sh -lc "apt-get update && apt-get install -y --no-install-recommends cmake pkg-config libssl-dev && cargo run -p paper-trading"
+    command: sh -c "apt-get update && apt-get install -y --no-install-recommends cmake pkg-config libssl-dev && cargo run -p paper-trading"
     environment:
       KAFKA_BROKERS: kafka:9092
       DATABASE_URL: postgres://postgres:postgres@timescaledb:5432/iicpc
@@ -130,7 +143,7 @@ services:
 
   telemetry-judge:
     <<: *rust-service
-    command: sh -lc "apt-get update && apt-get install -y --no-install-recommends cmake pkg-config libssl-dev && cargo run -p telemetry-judge"
+    command: sh -c "apt-get update && apt-get install -y --no-install-recommends cmake pkg-config libssl-dev && cargo run -p telemetry-judge"
     environment:
       KAFKA_BROKERS: kafka:9092
       DATABASE_URL: postgres://postgres:postgres@timescaledb:5432/iicpc
@@ -146,16 +159,17 @@ services:
       DATABASE_URL: postgres://postgres:postgres@timescaledb:5432/iicpc
       MESSAGE_TRANSPORT: kafka
       ORCHESTRATOR: docker-compose
+      CI: "true"
       PORT: 3001
       CLERK_PUBLISHABLE_KEY: ${CLERK_PUBLISHABLE_KEY:-}
-      CLERK_SECRET_KEY: ${CLERK_SECRET_KEY:-}
+      CLERK_SECRET_KEY: ${CLERK_SECRET_KEY:-pk_test_local_auth_mocking_key_123}
       RUST_PIPELINE_URL: http://api-gateway:8080
     depends_on:
       timescaledb:
         condition: service_healthy
       api-gateway:
         condition: service_started
-    command: sh -lc "corepack enable && pnpm install --frozen-lockfile && pnpm --filter @workspace/db push && pnpm --filter @workspace/api-server dev"
+    command: sh -c "corepack enable && pnpm install --frozen-lockfile && pnpm --filter @workspace/db push --force && pnpm --filter @workspace/api-server dev"
 
   frontend:
     <<: *node-service
@@ -164,16 +178,17 @@ services:
     environment:
       COREPACK_HOME: /workspace/.corepack
       PNPM_HOME: /workspace/.pnpm-home
+      CI: "true"
       PORT: 3000
       BASE_PATH: /
       VITE_API_URL: http://localhost:3001
       VITE_RUST_API_URL: http://localhost:8080
-      VITE_CLERK_PUBLISHABLE_KEY: ${VITE_CLERK_PUBLISHABLE_KEY:-pk_test_local}
+      VITE_CLERK_PUBLISHABLE_KEY: ${VITE_CLERK_PUBLISHABLE_KEY:-pk_test_bW9jay1hdXRoLWtleS0xMi5jbGVyay5hY2NvdW50cy5kZXYk}
       VITE_CLERK_PROXY_URL: ${VITE_CLERK_PROXY_URL:-}
     depends_on:
       api-server:
         condition: service_started
-    command: sh -lc "corepack enable && pnpm install --frozen-lockfile && pnpm --filter @workspace/iicpc-platform dev"
+    command: sh -c "corepack enable && pnpm install --frozen-lockfile && pnpm --filter @workspace/iicpc-platform dev"
 
 volumes:
   timescale-data:

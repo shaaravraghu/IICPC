@@ -37,7 +37,13 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 export default function Profile() {
-  const { user } = useUser();
+  let user: any = null;
+  try {
+    const authUser = useUser();
+    user = authUser.user;
+  } catch (e) {
+    // Local dev mockup bypass
+  }
   const queryClient = useQueryClient();
   const [editing, setEditing] = useState(false);
 

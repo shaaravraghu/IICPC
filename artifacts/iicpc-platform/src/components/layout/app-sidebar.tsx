@@ -30,7 +30,15 @@ const menuItems = [
 
 export function AppSidebar() {
   const [location] = useLocation();
-  const { signOut } = useClerk();
+  let signOut = () => {
+    window.location.reload();
+  };
+  try {
+    const clerk = useClerk();
+    signOut = clerk.signOut;
+  } catch (e) {
+    // Clerk not initialized or bypassed in local dev
+  }
   const { data: pipelineStatus } = useQuery({
     queryKey: ["sidebar-pipeline-status"],
     queryFn: async () => {

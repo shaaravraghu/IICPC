@@ -1,0 +1,2 @@
+import{purry as e}from"./purry.js";import{isDeepEqual as t}from"./isDeepEqual.js";function n(...t){return e(r,t)}function r(e,n){for(let[r,i]of Object.entries(n))if(!Object.hasOwn(e,r)||!t(i,e[r]))return!1;return!0}export{n as hasSubObject};
+//# sourceMappingURL=hasSubObject.js.map

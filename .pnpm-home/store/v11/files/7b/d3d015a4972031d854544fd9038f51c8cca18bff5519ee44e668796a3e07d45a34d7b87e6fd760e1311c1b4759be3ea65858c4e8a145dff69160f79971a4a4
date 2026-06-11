@@ -1,0 +1,2 @@
+Object.defineProperty(exports,Symbol.toStringTag,{value:`Module`});const e=require(`./purry.cjs`);function t(...t){return e.purry(n,t)}function n(e,t){let n=typeof t==`object`?t.step:1;if(n===0)throw RangeError(`range: step cannot be zero (0)!`);let i=r(((typeof t==`object`?t.end:t)-e)/n);return i<=0?[]:Array.from({length:i},(t,r)=>r===0?e:e+r*n)}function r(e){if(e===0)return 0;let t=Math.round(e);return Math.abs(e-t)/Math.abs(e)<1e-12?t:Math.ceil(e)}exports.range=t;
+//# sourceMappingURL=range.cjs.map

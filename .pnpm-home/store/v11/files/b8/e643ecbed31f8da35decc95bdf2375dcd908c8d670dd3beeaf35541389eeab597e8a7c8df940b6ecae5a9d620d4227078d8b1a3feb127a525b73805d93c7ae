@@ -1,0 +1,2 @@
+Object.defineProperty(exports,Symbol.toStringTag,{value:`Module`});const e=require(`./purry.cjs`);function t(...t){return e.purry(n,t)}function n(e,t){if(t<=0)return[];if(t>=e.length)return[...e];let n=Math.min(t,e.length-t),r=new Set;for(;r.size<n;){let t=Math.floor(Math.random()*e.length);r.add(t)}return t===n?[...r].sort((e,t)=>e-t).map(t=>e[t]):e.filter((e,t)=>!r.has(t))}exports.sample=t;
+//# sourceMappingURL=sample.cjs.map

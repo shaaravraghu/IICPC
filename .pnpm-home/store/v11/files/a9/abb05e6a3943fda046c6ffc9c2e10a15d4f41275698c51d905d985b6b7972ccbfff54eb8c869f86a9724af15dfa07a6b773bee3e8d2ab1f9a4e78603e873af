@@ -1,0 +1,73 @@
+import { Fo as GetToken, It as SignOut, Lo as PendingSessionOptions, Po as CheckAuthorizationWithCustomPermissions, Xa as ActClaim, ao as OrganizationCustomRoleKey, g as UseAuthReturn, gc as SessionVerificationLevel, io as OrganizationCustomPermissionKey, mc as SessionVerificationAfterMinutes, no as SessionStatusClaim, pc as ReverificationConfig, to as JwtPayload } from "./index-DAac51Y8.js";
+import "./moduleManager-WB15hU3T.js";
+
+//#region src/authorization.d.ts
+type AuthorizationOptions = {
+  userId: string | null | undefined;
+  orgId: string | null | undefined;
+  orgRole: string | null | undefined;
+  orgPermissions: string[] | null | undefined;
+  factorVerificationAge: [number, number] | null;
+  features: string | null | undefined;
+  plans: string | null | undefined;
+};
+declare const splitByScope: (fea: string | null | undefined) => {
+  org: string[];
+  user: string[];
+};
+declare const validateReverificationConfig: (config: ReverificationConfig | undefined | null) => false | (() => {
+  level: SessionVerificationLevel;
+  afterMinutes: SessionVerificationAfterMinutes;
+});
+/**
+ * Creates a function for comprehensive user authorization checks.
+ * Combines organization, billing, and reverification checks. The returned function
+ * authorizes only when every requested dimension passes; any requested dimension
+ * that cannot be satisfied (including missing or malformed session data) denies
+ * the request. Fails if `userId` is missing.
+ */
+declare const createCheckAuthorization: (options: AuthorizationOptions) => CheckAuthorizationWithCustomPermissions;
+type AuthStateOptions = {
+  authObject: {
+    userId?: string | null;
+    sessionId?: string | null;
+    sessionStatus?: SessionStatusClaim | null;
+    sessionClaims?: JwtPayload | null;
+    actor?: ActClaim | null;
+    orgId?: string | null;
+    orgRole?: OrganizationCustomRoleKey | null;
+    orgSlug?: string | null;
+    orgPermissions?: OrganizationCustomPermissionKey[] | null;
+    getToken: GetToken;
+    signOut: SignOut;
+    has: (params: Parameters<CheckAuthorizationWithCustomPermissions>[0]) => boolean;
+  };
+  options: PendingSessionOptions;
+};
+/**
+ * Shared utility function that centralizes auth state resolution logic,
+ * preventing duplication across different packages.
+ *
+ * @internal
+ */
+declare const resolveAuthState: ({
+  authObject: {
+    sessionId,
+    sessionStatus,
+    userId,
+    actor,
+    orgId,
+    orgRole,
+    orgSlug,
+    signOut,
+    getToken,
+    has,
+    sessionClaims
+  },
+  options: {
+    treatPendingAsSignedOut
+  }
+}: AuthStateOptions) => UseAuthReturn | undefined;
+//#endregion
+export { createCheckAuthorization, resolveAuthState, splitByScope, validateReverificationConfig };
+//# sourceMappingURL=authorization.d.ts.map

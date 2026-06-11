@@ -1,0 +1,2 @@
+Object.defineProperty(exports,Symbol.toStringTag,{value:`Module`});const e=require(`./hasAtLeast.cjs`),t=require(`./purryOrderRules-cW1I4C_j.cjs`);function n(...e){return t.t(r,e)}function r(t,n){if(!e.hasAtLeast(t,2))return t[0];let[r]=t,[,...i]=t;for(let e of i)n(e,r)<0&&(r=e);return r}exports.firstBy=n;
+//# sourceMappingURL=firstBy.cjs.map

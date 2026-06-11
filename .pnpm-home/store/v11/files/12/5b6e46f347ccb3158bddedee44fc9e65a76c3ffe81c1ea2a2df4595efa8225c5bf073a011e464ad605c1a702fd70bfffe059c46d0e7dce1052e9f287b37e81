@@ -1,0 +1,2 @@
+Object.defineProperty(exports,Symbol.toStringTag,{value:`Module`});const e=require(`./purry.cjs`);function t(...t){return e.purry(n,t,r)}const n=(e,t)=>e.flatMap(t),r=e=>(t,n,r)=>{let i=e(t,n,r);return Array.isArray(i)?{done:!1,hasNext:!0,hasMany:!0,next:i}:{done:!1,hasNext:!0,next:i}};exports.flatMap=t;
+//# sourceMappingURL=flatMap.cjs.map

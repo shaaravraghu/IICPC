@@ -1,0 +1,1 @@
+Object.defineProperty(exports,Symbol.toStringTag,{value:`Module`});const e=require(`./conditional-3wcaMG9k.cjs`);exports.conditional=e.t;

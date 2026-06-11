@@ -36,6 +36,17 @@ The current architecture follows this pipeline:
 | `lib/` | Existing TypeScript shared libraries, schemas, and generated client code |
 | `architecture.txt` | Original architecture direction and hackathon-aligned design notes |
 
+## Dual-Stack Architecture
+
+The platform runs two distinct backends that operate in tandem:
+
+| Layer | Port | Role |
+|---|---|---|
+| **TypeScript API Server** | `3001` | Auth, basic CRUD storage, in-process simulation pipeline (fallback when Rust pipeline is unavailable) |
+| **Rust API Gateway + Pipeline** | `8080` | Distributed evaluation engine, Kafka-backed real-time scoring, canonical leaderboard writes |
+
+Submissions are forwarded from the TS API to the Rust pipeline via the `RUST_PIPELINE_URL` env var. Both backends share the same PostgreSQL/TimescaleDB instance and Kafka bus, so all state (runs, scores, telemetry) stays consistent regardless of which pipeline processes a submission.
+
 ## Rust Workspace
 
 The Rust workspace is the backend foundation for the signal platform.
@@ -47,7 +58,7 @@ The Rust workspace is the backend foundation for the signal platform.
 | `platform-types` | Shared structs and enums for strategies, assets, scores, telemetry, and pipeline events |
 | `eval-algorithms` | Predefined metric functions and scoring formulas used throughout the pipeline |
 | `strategy-parser` | Validation and starter-manifest logic for constrained strategy submissions |
-| `kafka-utils` | In-memory event-bus abstraction with Kafka topic naming compatibility |
+| `kafka-utils` | Real Kafka producer/consumer (rdkafka); InMemoryEventBus behind `#[cfg(test)]` |
 
 ### Services
 
@@ -65,29 +76,29 @@ The Rust workspace is the backend foundation for the signal platform.
 
 | File | Why it matters |
 |---|---|
-| [libs/platform-types/src/lib.rs](/Users/shaarav/Documents/GitHub_Projects/IICPC/libs/platform-types/src/lib.rs) | Core shared data model for the entire backend |
-| [libs/eval-algorithms/src/lib.rs](/Users/shaarav/Documents/GitHub_Projects/IICPC/libs/eval-algorithms/src/lib.rs) | Predefined metrics and score formulas |
-| [libs/strategy-parser/src/lib.rs](/Users/shaarav/Documents/GitHub_Projects/IICPC/libs/strategy-parser/src/lib.rs) | Strategy validation and starter strategy definition |
-| [libs/kafka-utils/src/lib.rs](/Users/shaarav/Documents/GitHub_Projects/IICPC/libs/kafka-utils/src/lib.rs) | Event transport abstraction used between stages |
-| [TECHNICAL_METRICS.md](/Users/shaarav/Documents/GitHub_Projects/IICPC/TECHNICAL_METRICS.md) | Stage 1 technical metric definitions |
-| [FUNDAMENTAL_METRICS.md](/Users/shaarav/Documents/GitHub_Projects/IICPC/FUNDAMENTAL_METRICS.md) | Stage 2 fundamental validation metric definitions |
-| [SENTIMENT_METRICS.md](/Users/shaarav/Documents/GitHub_Projects/IICPC/SENTIMENT_METRICS.md) | Stage 3 sentiment scoring methods, prompt, and worker actions |
-| [DATA_SOURCES.md](/Users/shaarav/Documents/GitHub_Projects/IICPC/DATA_SOURCES.md) | Data intake boundaries for technical and fundamental analysis |
-| [config/bot_weights.yaml](/Users/shaarav/Documents/GitHub_Projects/IICPC/config/bot_weights.yaml) | Group weights and leaderboard scoring weights |
-| [config/kafka_topics.yaml](/Users/shaarav/Documents/GitHub_Projects/IICPC/config/kafka_topics.yaml) | Topic topology for the distributed pipeline |
-| [infrastructure/scripts/deploy.sh](/Users/shaarav/Documents/GitHub_Projects/IICPC/infrastructure/scripts/deploy.sh) | Deployment entrypoint for Kubernetes scaffold |
-| [artifacts/api-server/src/routes/executions.ts](/Users/shaarav/Documents/GitHub_Projects/IICPC/artifacts/api-server/src/routes/executions.ts) | Phase 1.2 execution lifecycle, status, and per-run leaderboard routes |
-| [artifacts/api-server/src/lib/orchestrator.ts](/Users/shaarav/Documents/GitHub_Projects/IICPC/artifacts/api-server/src/lib/orchestrator.ts) | Phase 1.3 in-process pipeline orchestrator and virtual bot group runner |
-| [artifacts/api-server/src/lib/bots/technicalBot.ts](/Users/shaarav/Documents/GitHub_Projects/IICPC/artifacts/api-server/src/lib/bots/technicalBot.ts) | Phase 1.4 technical metric bot with 20 grouped technical metrics |
-| [artifacts/api-server/src/lib/bots/fundamentalBot.ts](/Users/shaarav/Documents/GitHub_Projects/IICPC/artifacts/api-server/src/lib/bots/fundamentalBot.ts) | Phase 2.1 fundamental validation bot with 20 grouped business metrics |
-| [artifacts/api-server/src/lib/bots/sentimentBot.ts](/Users/shaarav/Documents/GitHub_Projects/IICPC/artifacts/api-server/src/lib/bots/sentimentBot.ts) | Phase 2.1 weighted sentiment bot with 15 qualitative methods |
-| [artifacts/api-server/src/lib/marketDataFetcher.ts](/Users/shaarav/Documents/GitHub_Projects/IICPC/artifacts/api-server/src/lib/marketDataFetcher.ts) | Phase 2.2 Alpha Vantage/Polygon/synthetic OHLCV fetcher and cache seeder |
-| [artifacts/api-server/src/lib/executionSimulator.ts](/Users/shaarav/Documents/GitHub_Projects/IICPC/artifacts/api-server/src/lib/executionSimulator.ts) | Phase 2.3 historical trade simulator for execution scoring |
-| [artifacts/api-server/src/routes/marketData.ts](/Users/shaarav/Documents/GitHub_Projects/IICPC/artifacts/api-server/src/routes/marketData.ts) | Phase 1.2 market-data cache trigger route |
-| [artifacts/api-server/src/routes/paperTrading.ts](/Users/shaarav/Documents/GitHub_Projects/IICPC/artifacts/api-server/src/routes/paperTrading.ts) | Phase 1.2 paper-trading simulation route |
-| [artifacts/iicpc-platform/src/pages/editor.tsx](/Users/shaarav/Documents/GitHub_Projects/IICPC/artifacts/iicpc-platform/src/pages/editor.tsx) | Phase 2.6 run-analysis editor integration and live progress panel |
-| [artifacts/iicpc-platform/src/pages/leaderboard.tsx](/Users/shaarav/Documents/GitHub_Projects/IICPC/artifacts/iicpc-platform/src/pages/leaderboard.tsx) | Phase 2.5/2.6 live 3-column asset leaderboard |
-| [artifacts/iicpc-platform/src/components/layout/app-sidebar.tsx](/Users/shaarav/Documents/GitHub_Projects/IICPC/artifacts/iicpc-platform/src/components/layout/app-sidebar.tsx) | Phase 2.6 live run status sidebar widget |
+| [libs/platform-types/src/lib.rs](libs/platform-types/src/lib.rs) | Core shared data model for the entire backend |
+| [libs/eval-algorithms/src/lib.rs](libs/eval-algorithms/src/lib.rs) | Predefined metrics and score formulas |
+| [libs/strategy-parser/src/lib.rs](libs/strategy-parser/src/lib.rs) | Strategy validation and starter strategy definition |
+| [libs/kafka-utils/src/lib.rs](libs/kafka-utils/src/lib.rs) | Real Kafka producer/consumer (rdkafka); InMemoryEventBus behind `#[cfg(test)]` |
+| [TECHNICAL_METRICS.md](TECHNICAL_METRICS.md) | Stage 1 technical metric definitions |
+| [FUNDAMENTAL_METRICS.md](FUNDAMENTAL_METRICS.md) | Stage 2 fundamental validation metric definitions |
+| [SENTIMENT_METRICS.md](SENTIMENT_METRICS.md) | Stage 3 sentiment scoring methods, prompt, and worker actions |
+| [DATA_SOURCES.md](DATA_SOURCES.md) | Data intake boundaries for technical and fundamental analysis |
+| [config/bot_weights.yaml](config/bot_weights.yaml) | Group weights and leaderboard scoring weights |
+| [config/kafka_topics.yaml](config/kafka_topics.yaml) | Topic topology for the distributed pipeline |
+| [infrastructure/scripts/deploy.sh](infrastructure/scripts/deploy.sh) | Deployment entrypoint for Kubernetes scaffold |
+| [artifacts/api-server/src/routes/executions.ts](artifacts/api-server/src/routes/executions.ts) | Execution lifecycle, status, and per-run leaderboard routes |
+| [artifacts/api-server/src/lib/orchestrator.ts](artifacts/api-server/src/lib/orchestrator.ts) | In-process pipeline orchestrator and virtual bot group runner |
+| [artifacts/api-server/src/lib/bots/technicalBot.ts](artifacts/api-server/src/lib/bots/technicalBot.ts) | Technical metric bot with 20 grouped technical metrics |
+| [artifacts/api-server/src/lib/bots/fundamentalBot.ts](artifacts/api-server/src/lib/bots/fundamentalBot.ts) | Fundamental validation bot with 20 grouped business metrics |
+| [artifacts/api-server/src/lib/bots/sentimentBot.ts](artifacts/api-server/src/lib/bots/sentimentBot.ts) | Weighted sentiment bot with 15 qualitative methods |
+| [artifacts/api-server/src/lib/marketDataFetcher.ts](artifacts/api-server/src/lib/marketDataFetcher.ts) | Alpha Vantage/Polygon/synthetic OHLCV fetcher and cache seeder |
+| [artifacts/api-server/src/lib/executionSimulator.ts](artifacts/api-server/src/lib/executionSimulator.ts) | Historical trade simulator for execution scoring |
+| [artifacts/api-server/src/routes/marketData.ts](artifacts/api-server/src/routes/marketData.ts) | Market-data cache trigger route |
+| [artifacts/api-server/src/routes/paperTrading.ts](artifacts/api-server/src/routes/paperTrading.ts) | Paper-trading simulation route |
+| [artifacts/iicpc-platform/src/pages/editor.tsx](artifacts/iicpc-platform/src/pages/editor.tsx) | Run-analysis editor integration and live progress panel |
+| [artifacts/iicpc-platform/src/pages/leaderboard.tsx](artifacts/iicpc-platform/src/pages/leaderboard.tsx) | Live 3-column asset leaderboard |
+| [artifacts/iicpc-platform/src/components/layout/app-sidebar.tsx](artifacts/iicpc-platform/src/components/layout/app-sidebar.tsx) | Live run status sidebar widget |
 
 ## TypeScript API Prototype
 
@@ -145,28 +156,76 @@ Before running these routes locally, set `DATABASE_URL` and push the Drizzle sch
 
 If you are new to this repository, read in this order:
 
-1. [README.md](/Users/shaarav/Documents/GitHub_Projects/IICPC/README.md)
-2. [libs/platform-types/src/lib.rs](/Users/shaarav/Documents/GitHub_Projects/IICPC/libs/platform-types/src/lib.rs)
-3. [libs/eval-algorithms/src/lib.rs](/Users/shaarav/Documents/GitHub_Projects/IICPC/libs/eval-algorithms/src/lib.rs)
-4. [libs/strategy-parser/src/lib.rs](/Users/shaarav/Documents/GitHub_Projects/IICPC/libs/strategy-parser/src/lib.rs)
-5. Any service under [services](/Users/shaarav/Documents/GitHub_Projects/IICPC/services) depending on the pipeline stage you want to work on
-6. Infrastructure files under [infrastructure/kubernetes](/Users/shaarav/Documents/GitHub_Projects/IICPC/infrastructure/kubernetes)
+1. [README.md](README.md)
+2. [libs/platform-types/src/lib.rs](libs/platform-types/src/lib.rs)
+3. [libs/eval-algorithms/src/lib.rs](libs/eval-algorithms/src/lib.rs)
+4. [libs/strategy-parser/src/lib.rs](libs/strategy-parser/src/lib.rs)
+5. Any service under [services](services) depending on the pipeline stage you want to work on
+6. Infrastructure files under [infrastructure/kubernetes](infrastructure/kubernetes)
 
 ## Run And Verify
 
-Current local verification:
+### Quick Start (Full Stack)
+
+Spin up Kafka, TimescaleDB, all Rust services, and the TypeScript API + frontend:
+
+```bash
+docker-compose up -d
+```
+
+Then open `http://localhost:3000` in your browser.
+
+### Verify Services
+
+Check all containers are healthy:
+
+```bash
+docker-compose ps
+```
+
+Run Rust unit tests:
 
 ```bash
 cargo test --workspace
 ```
 
-Useful commands:
+Run the integration test suite (TS pipeline + Rust pipeline):
+
+```bash
+bash scripts/test-pipeline.sh
+```
+
+Run only the Rust pipeline integration tests:
+
+```bash
+RUST_API_URL=http://localhost:8080 SKIP_RUST_TESTS=0 bash scripts/test-pipeline.sh
+```
+
+Skip the Rust block (TS-only environment):
+
+```bash
+SKIP_RUST_TESTS=1 bash scripts/test-pipeline.sh
+```
+
+### Run Individual Services
 
 ```bash
 cargo run -p api-gateway
 cargo run -p technical-agents
 cargo run -p telemetry-judge
 ```
+
+### Environment Variables
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `RUST_PIPELINE_URL` | *(unset — TS-only mode)* | URL of the Rust api-gateway; set to `http://api-gateway:8080` in Docker Compose |
+| `RUST_API_URL` | `http://localhost:8080` | Used by `test-pipeline.sh` to reach the Rust gateway directly |
+| `KAFKA_BROKERS` | `kafka:9092` | Kafka broker endpoints |
+| `DATABASE_URL` | *(required)* | PostgreSQL/TimescaleDB connection string |
+| `POLYGON_API_KEY` | *(optional)* | Real market data provider; falls back to synthetic data if unset |
+| `ALPHA_VANTAGE_API_KEY` | *(optional)* | Alternative real market data provider |
+| `SKIP_RUST_TESTS` | `0` | Set to `1` in `test-pipeline.sh` to skip the Rust gateway test block |
 
 Note:
 `cargo fmt --check` currently requires `rustfmt` to be installed on the local Rust toolchain.

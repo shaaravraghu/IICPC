@@ -1,0 +1,2 @@
+import{purry as e}from"./purry.js";function t(...t){return e(n,t)}function n(e,t){let n={};for(let[r,i]of Object.entries(e)){let a=t(r,i,e);n[a]=i}return n}export{t as mapKeys};
+//# sourceMappingURL=mapKeys.js.map

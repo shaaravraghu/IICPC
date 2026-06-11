@@ -1,0 +1,2 @@
+Object.defineProperty(exports,Symbol.toStringTag,{value:`Module`});const e=require(`./purry.cjs`);function t(...t){return e.purry(n,t)}const n=(e,t)=>{let n=e.entries(),r=n.next();if(`done`in r&&r.done)return 0;let{value:[,i]}=r,a=t(i,0,e);for(let[r,i]of n){let n=t(i,r,e);a+=n}return a};exports.sumBy=t;
+//# sourceMappingURL=sumBy.cjs.map
