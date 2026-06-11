@@ -1,0 +1,2 @@
+Object.defineProperty(exports,Symbol.toStringTag,{value:`Module`});const e=require(`./purry.cjs`);function t(...t){return e.purry(r,t)}const n=(e,t)=>e-t;function r(e){if(e.length===0)return;let t=[...e].sort(n);if(t.length%2!=0)return t[(t.length-1)/2];let r=t.length/2;return(t[r]+t[r-1])/2}exports.median=t;
+//# sourceMappingURL=median.cjs.map

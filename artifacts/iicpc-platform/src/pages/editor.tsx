@@ -55,7 +55,13 @@ type ExecutionStatus = {
 };
 
 export default function Editor() {
-  const { userId } = useAuth();
+  let userId: string | null = null;
+  try {
+    const auth = useAuth();
+    userId = auth.userId;
+  } catch (e) {
+    // Local dev mockup bypass
+  }
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
   const [code, setCode] = useState(STARTER_STRATEGY_YAML);
@@ -388,7 +394,7 @@ export default function Editor() {
                   </>
                 )}
 
-                {submissions && submissions.length > 0 && (
+                {Array.isArray(submissions) && submissions.length > 0 && (
                   <div>
                     <div className="text-xs font-mono text-muted-foreground uppercase mb-2">Previous Submissions</div>
                     <div className="space-y-1.5">

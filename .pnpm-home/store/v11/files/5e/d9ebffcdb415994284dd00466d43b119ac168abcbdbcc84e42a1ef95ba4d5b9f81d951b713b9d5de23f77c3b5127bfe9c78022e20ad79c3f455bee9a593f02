@@ -1,0 +1,2 @@
+Object.defineProperty(exports,Symbol.toStringTag,{value:`Module`});const e=require(`./purry.cjs`);function t(...t){return e.purry(n,t)}function n(e){let t=[...e];for(let n=0;n<e.length;n++){let r=n+Math.floor(Math.random()*(e.length-n)),i=t[r];t[r]=t[n],t[n]=i}return t}exports.shuffle=t;
+//# sourceMappingURL=shuffle.cjs.map

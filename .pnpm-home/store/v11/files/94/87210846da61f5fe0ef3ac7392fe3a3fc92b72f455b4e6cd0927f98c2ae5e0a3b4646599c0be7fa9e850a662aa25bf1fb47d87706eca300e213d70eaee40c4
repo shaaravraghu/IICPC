@@ -1,0 +1,2 @@
+import{purry as e}from"./purry.js";function t(...t){return e(n,t)}function n(e,t){let n=[];for(let[r,i]of e.entries()){if(!t(i,r,e))break;n.push(i)}return n}export{t as takeWhile};
+//# sourceMappingURL=takeWhile.js.map

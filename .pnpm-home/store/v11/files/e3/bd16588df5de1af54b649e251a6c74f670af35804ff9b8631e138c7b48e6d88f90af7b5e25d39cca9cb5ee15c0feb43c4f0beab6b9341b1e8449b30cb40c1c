@@ -1,0 +1,2 @@
+Object.defineProperty(exports,Symbol.toStringTag,{value:`Module`});const e=require(`./purry.cjs`);function t(...t){return e.purry(n,t)}function n(e,t){for(let[n,r]of e.entries())if(!t(r,n,e))return e.slice(n);return[]}exports.dropWhile=t;
+//# sourceMappingURL=dropWhile.cjs.map

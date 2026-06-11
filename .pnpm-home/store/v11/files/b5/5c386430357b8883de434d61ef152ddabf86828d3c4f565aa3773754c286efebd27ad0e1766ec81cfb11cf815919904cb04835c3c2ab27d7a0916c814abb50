@@ -1,0 +1,2 @@
+import{purry as e}from"./purry.js";import{t}from"./words-OcG39_Hp.js";function n(...t){return e(r,t)}const r=e=>t(e).join(`_`).toLowerCase();export{n as toSnakeCase};
+//# sourceMappingURL=toSnakeCase.js.map

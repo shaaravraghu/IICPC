@@ -1,0 +1,2 @@
+import{r as e,t}from"./utilityEvaluators-Cb8x6-JZ.js";import{t as n}from"./purryFromLazy-DELFL6Wm.js";function r(...e){return n(i,e)}function i(n){if(n.length===0)return e;let r=new Map;for(let e of n)r.set(e,(r.get(e)??0)+1);return e=>{let n=r.get(e);return n===void 0||n===0?{done:!1,hasNext:!0,next:e}:(r.set(e,n-1),t)}}export{r as difference};
+//# sourceMappingURL=difference.js.map

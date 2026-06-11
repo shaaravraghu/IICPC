@@ -109,11 +109,13 @@ export default function Learn() {
     { query: { queryKey: getListFunctionsQueryKey({ q: search || undefined, category }) } }
   );
 
-  const grouped = functions?.reduce((acc, fn) => {
-    if (!acc[fn.category]) acc[fn.category] = [];
-    acc[fn.category].push(fn);
-    return acc;
-  }, {} as Record<string, NonNullable<typeof functions>>) ?? {};
+  const grouped = Array.isArray(functions)
+    ? functions.reduce((acc, fn) => {
+        if (!acc[fn.category]) acc[fn.category] = [];
+        acc[fn.category].push(fn);
+        return acc;
+      }, {} as Record<string, NonNullable<typeof functions>>)
+    : {};
 
   const categoryOrder = ["technical", "fundamental", "sentiment", "orderbook", "utility"];
   const selectedName = selectedId ? functions?.find((f) => f.id === selectedId)?.name : undefined;

@@ -1,0 +1,2 @@
+Object.defineProperty(exports,Symbol.toStringTag,{value:`Module`});const e=require(`./purry.cjs`),t=require(`./withPrecision-L0Ri7wjG.cjs`);function n(...n){return e.purry(t.t(Math.ceil),n)}exports.ceil=n;
+//# sourceMappingURL=ceil.cjs.map

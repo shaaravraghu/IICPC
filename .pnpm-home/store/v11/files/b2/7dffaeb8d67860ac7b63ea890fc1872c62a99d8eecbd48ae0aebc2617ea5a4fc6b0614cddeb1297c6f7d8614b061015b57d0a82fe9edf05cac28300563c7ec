@@ -1,0 +1,2 @@
+import{purry as e}from"./purry.js";function t(...t){return e(n,t)}const n=(e,t)=>{if(e.length===0)return NaN;let n=0;for(let[r,i]of e.entries())n+=t(i,r,e);return n/e.length};export{t as meanBy};
+//# sourceMappingURL=meanBy.js.map

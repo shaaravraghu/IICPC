@@ -1,0 +1,2 @@
+import{purry as e}from"./purry.js";import{r as t,t as n}from"./utilityEvaluators-Cb8x6-JZ.js";function r(...t){return e(i,t,a)}const i=(e,t)=>t<0?[...e]:e.slice(t);function a(e){if(e<=0)return t;let r=e;return e=>r>0?(--r,n):{done:!1,hasNext:!0,next:e}}export{r as drop};
+//# sourceMappingURL=drop.js.map

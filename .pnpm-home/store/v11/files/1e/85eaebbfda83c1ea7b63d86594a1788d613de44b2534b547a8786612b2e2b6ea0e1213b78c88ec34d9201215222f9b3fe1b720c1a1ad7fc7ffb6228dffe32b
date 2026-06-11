@@ -1,0 +1,2 @@
+Object.defineProperty(exports,Symbol.toStringTag,{value:`Module`});const e=require(`./purry.cjs`),t=require(`./hasAtLeast.cjs`);function n(...t){return e.purry(r,t)}function r(e,n){if(!t.hasAtLeast(n,1))return{...e};if(!t.hasAtLeast(n,2)){let{[n[0]]:t,...r}=e;return r}let r={...e};for(let e of n)delete r[e];return r}exports.omit=n;
+//# sourceMappingURL=omit.cjs.map

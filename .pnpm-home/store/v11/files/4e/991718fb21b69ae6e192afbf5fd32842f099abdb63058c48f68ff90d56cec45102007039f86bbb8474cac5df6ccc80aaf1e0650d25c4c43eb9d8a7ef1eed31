@@ -1,0 +1,2 @@
+Object.defineProperty(exports,Symbol.toStringTag,{value:`Module`});const e=require(`./purry.cjs`);function t(...t){return e.purry(n,t)}const n=e=>`${e[0]?.toUpperCase()??``}${e.slice(1)}`;exports.capitalize=t;
+//# sourceMappingURL=capitalize.cjs.map

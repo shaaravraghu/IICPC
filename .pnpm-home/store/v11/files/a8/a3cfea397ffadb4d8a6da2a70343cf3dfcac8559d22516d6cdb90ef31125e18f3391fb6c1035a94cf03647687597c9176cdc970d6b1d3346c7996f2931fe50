@@ -1,0 +1,2 @@
+import{purry as e}from"./purry.js";import{t}from"./binarySearchCutoffIndex-CalebGhL.js";function n(...t){return e(r,t)}function r(e,n,r){let i=r(n,void 0,e);return t(e,(t,n)=>r(t,n,e)<=i)}export{n as sortedLastIndexBy};
+//# sourceMappingURL=sortedLastIndexBy.js.map

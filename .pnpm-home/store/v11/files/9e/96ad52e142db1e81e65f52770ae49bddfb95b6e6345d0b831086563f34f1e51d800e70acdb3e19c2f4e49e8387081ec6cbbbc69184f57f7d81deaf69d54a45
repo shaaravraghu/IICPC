@@ -1,0 +1,29 @@
+import type { ApiClient } from '../api';
+import type { AuthenticateRequest } from './request';
+import type { AuthenticateRequestOptions } from './types';
+type BuildTimeOptions = Partial<Pick<AuthenticateRequestOptions, 'apiUrl' | 'apiVersion' | 'audience' | 'domain' | 'isSatellite' | 'jwtKey' | 'proxyUrl' | 'publishableKey' | 'secretKey' | 'machineSecretKey'>>;
+/**
+ * @internal
+ */
+export type CreateAuthenticateRequestOptions = {
+    options: BuildTimeOptions;
+    apiClient: ApiClient;
+};
+/**
+ * @internal
+ */
+export declare function createAuthenticateRequest(params: CreateAuthenticateRequestOptions): {
+    authenticateRequest: AuthenticateRequest;
+    debugRequestState: (params: import("./authStatus").RequestState) => {
+        isSignedIn: boolean;
+        isAuthenticated: boolean;
+        proxyUrl: string | undefined;
+        reason: string | null;
+        message: string | null;
+        publishableKey: string;
+        isSatellite: boolean;
+        domain: string;
+    };
+};
+export {};
+//# sourceMappingURL=factory.d.ts.map

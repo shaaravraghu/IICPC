@@ -1,0 +1,2 @@
+Object.defineProperty(exports,Symbol.toStringTag,{value:`Module`});const e=require(`./purryOrderRules-cW1I4C_j.cjs`);function t(...t){return e.t(n,t)}const n=(e,t)=>[...e].sort(t);exports.sortBy=t;
+//# sourceMappingURL=sortBy.cjs.map
