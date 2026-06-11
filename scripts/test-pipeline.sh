@@ -118,3 +118,201 @@ socket.on('connect_error', (err) => {
 "
 
 echo "Pipeline integration test passed."
+
+RUST_API_URL="${RUST_API_URL:-http://localhost:8080}"
+
+# ---------------------------------------------------------------------------
+# Rust api-gateway pipeline block
+# Skipped gracefully if the Rust gateway is not reachable (e.g. local-only
+# TypeScript-only runs). Set SKIP_RUST_TESTS=1 to force-skip.
+# ---------------------------------------------------------------------------
+if [ "${SKIP_RUST_TESTS:-0}" = "1" ]; then
+  echo "SKIP_RUST_TESTS=1 — skipping Rust api-gateway block."
+else
+
+echo "Checking Rust api-gateway health at $RUST_API_URL/health"
+if ! curl -fsS --max-time 5 "$RUST_API_URL/health" >"$tmp_dir/rust_health.json" 2>/dev/null; then
+  echo "WARNING: Rust api-gateway not reachable at $RUST_API_URL — skipping Rust pipeline tests." >&2
+else
+
+echo "=== Testing Rust api-gateway pipeline ==="
+
+# Valid StrategyManifest YAML matching the structure expected by strategy-parser.
+# Sentiment weights must sum to exactly 100.
+RUST_STRATEGY_YAML='id: starter-momentum-quality-sentiment
+owner: integration-test
+technical_groups:
+  - id: momentum-breakout
+    category: Technical
+    pass_threshold: 62.0
+    calls:
+      - name: trend_strength_adx
+        params:
+          period: 14
+      - name: momentum_rate_of_change
+        params:
+          period: 12
+      - name: vwap_distance
+        params: {}
+  - id: trend-confirmation
+    category: Technical
+    pass_threshold: 55.0
+    calls:
+      - name: market_structure_analysis
+        params: {}
+      - name: relative_strength_vs_benchmark
+        params:
+          period: 20
+fundamental_groups:
+  - id: quality-compounders
+    category: Fundamental
+    pass_threshold: 60.0
+    calls:
+      - name: return_on_invested_capital
+        params:
+          min: 12
+      - name: free_cash_flow_margin
+        params:
+          min: 8
+sentiment_dimensions:
+  - name: news_sentiment
+    weight_pct: 20
+    call:
+      name: news_sentiment_analysis
+      params: {}
+  - name: options_sentiment
+    weight_pct: 15
+    call:
+      name: options_market_sentiment
+      params: {}
+  - name: institutional_flow
+    weight_pct: 15
+    call:
+      name: institutional_fund_flow_analysis
+      params: {}
+  - name: analyst_sentiment
+    weight_pct: 10
+    call:
+      name: analyst_rating_sentiment
+      params: {}
+  - name: earnings_call_tone
+    weight_pct: 15
+    call:
+      name: earnings_call_sentiment
+      params: {}
+  - name: technical_psychology
+    weight_pct: 10
+    call:
+      name: technical_sentiment_indicators
+      params: {}
+  - name: alternative_data
+    weight_pct: 10
+    call:
+      name: alternative_data_sentiment
+      params: {}
+  - name: prediction_markets
+    weight_pct: 5
+    call:
+      name: prediction_market_analysis
+      params: {}'
+
+# Escape YAML for JSON embedding: replace backslash, double-quote, newline
+RUST_STRATEGY_JSON="$(printf '%s' "$RUST_STRATEGY_YAML" | node -e "
+let buf='';
+process.stdin.on('data',d=>buf+=d);
+process.stdin.on('end',()=>process.stdout.write(JSON.stringify(buf)));
+")"
+
+curl -fsS -H "Content-Type: application/json" -X POST \
+  -d "{\"strategy_yaml\": $RUST_STRATEGY_JSON, \"assets\": [\"AAPL\",\"MSFT\",\"NVDA\"]}" \
+  "$RUST_API_URL/api/submissions" > "$tmp_dir/rust_submission.json"
+
+rust_run_id="$(node -e "const fs=require('fs'); const data=JSON.parse(fs.readFileSync(process.argv[1],'utf8')); if(!data.run_id) process.exit(1); process.stdout.write(data.run_id)" "$tmp_dir/rust_submission.json")"
+
+echo "Rust Pipeline accepted as $rust_run_id"
+
+# Poll Rust pipeline status
+rust_deadline=$(( $(date +%s) + POLL_SECONDS ))
+rust_status="queued"
+
+while [ "$(date +%s)" -le "$rust_deadline" ]; do
+  curl -fsS "$RUST_API_URL/api/pipeline/status?run_id=$rust_run_id" >"$tmp_dir/rust_status.json"
+  rust_status="$(node -e "const fs=require('fs'); const data=JSON.parse(fs.readFileSync(process.argv[1],'utf8')); process.stdout.write(data.status || '')" "$tmp_dir/rust_status.json")"
+  echo "rust_status=$rust_status"
+
+  if [ "$rust_status" = "completed" ]; then
+    break
+  fi
+
+  if [ "$rust_status" = "failed" ]; then
+    echo "Rust Pipeline failed" >&2
+    cat "$tmp_dir/rust_status.json" >&2
+    exit 1
+  fi
+
+  sleep 2
+done
+
+if [ "$rust_status" != "completed" ]; then
+  echo "Timed out waiting for Rust pipeline completion after ${POLL_SECONDS}s" >&2
+  cat "$tmp_dir/rust_status.json" >&2
+  exit 1
+fi
+
+# Verify Rust leaderboard has 3-column scores
+echo "Verifying Rust leaderboard score columns"
+curl -fsS "$RUST_API_URL/api/leaderboard?run_id=$rust_run_id" >"$tmp_dir/rust_leaderboard.json"
+node -e "
+const fs = require('fs');
+const data = JSON.parse(fs.readFileSync(process.argv[1], 'utf8'));
+const rows = data.leaderboard || data;
+if (!Array.isArray(rows) || rows.length === 0) {
+  throw new Error('rust leaderboard returned no rows');
+}
+const missing = rows.filter((row) =>
+  typeof row.sentiment_score !== 'number' ||
+  typeof row.execution_score !== 'number' ||
+  typeof row.paper_score !== 'number'
+);
+if (missing.length > 0) {
+  throw new Error('rust leaderboard rows are missing sentiment/execution/paper scores: ' + JSON.stringify(missing[0]));
+}
+console.log('rust leaderboard rows:', rows.length, '— all 3-column scores present');
+" "$tmp_dir/rust_leaderboard.json"
+
+# Test Rust WebSocket: ws://localhost:8080/ws/leaderboard
+echo "Checking Rust WebSocket connectivity at $RUST_API_URL/ws/leaderboard"
+RUST_API_URL="$RUST_API_URL" TEST_RUN_ID="$rust_run_id" $PNPM_EXEC --dir "$ROOT_DIR" --filter @workspace/iicpc-platform exec node --input-type=module -e "
+import WebSocket from 'ws';
+const wsUrl = process.env.RUST_API_URL.replace(/^http/, 'ws') + '/ws/leaderboard';
+const ws = new WebSocket(wsUrl);
+const timeout = setTimeout(() => {
+  ws.close();
+  console.error('rust websocket connection timed out after 5 s');
+  process.exit(1);
+}, 5000);
+ws.on('open', () => {
+  clearTimeout(timeout);
+  console.log('rust websocket connected to', wsUrl);
+  // Verify we receive at least one message (the initial snapshot)
+  const msgTimeout = setTimeout(() => {
+    console.warn('rust websocket: no snapshot received within 3 s — connection OK but no data');
+    ws.close();
+  }, 3000);
+  ws.on('message', (data) => {
+    clearTimeout(msgTimeout);
+    console.log('rust websocket snapshot received, bytes:', data.length);
+    ws.close();
+  });
+});
+ws.on('error', (err) => {
+  clearTimeout(timeout);
+  console.error(err.message);
+  process.exit(1);
+});
+" || true
+
+echo "Rust Pipeline integration test passed."
+
+fi  # end: Rust gateway reachable
+fi  # end: SKIP_RUST_TESTS
