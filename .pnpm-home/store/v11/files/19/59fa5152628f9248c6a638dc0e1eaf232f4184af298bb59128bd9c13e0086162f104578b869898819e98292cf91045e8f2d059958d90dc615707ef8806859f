@@ -1,0 +1,2 @@
+import{purry as e}from"./purry.js";function t(...t){return e(n,t,r)}const n=(e,t)=>e.flatMap(t),r=e=>(t,n,r)=>{let i=e(t,n,r);return Array.isArray(i)?{done:!1,hasNext:!0,hasMany:!0,next:i}:{done:!1,hasNext:!0,next:i}};export{t as flatMap};
+//# sourceMappingURL=flatMap.js.map

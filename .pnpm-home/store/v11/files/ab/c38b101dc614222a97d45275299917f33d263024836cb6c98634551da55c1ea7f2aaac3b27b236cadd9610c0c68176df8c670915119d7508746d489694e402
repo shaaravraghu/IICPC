@@ -1,0 +1,72 @@
+import {
+  errorThrower
+} from "./chunk-YBVFDYDR.mjs";
+import "./chunk-TOROEX6P.mjs";
+
+// src/webhooks.ts
+import { getEnvVariable } from "@clerk/shared/getEnvVariable";
+import { Webhook } from "standardwebhooks";
+var STANDARD_WEBHOOK_ID_HEADER = "webhook-id";
+var STANDARD_WEBHOOK_TIMESTAMP_HEADER = "webhook-timestamp";
+var STANDARD_WEBHOOK_SIGNATURE_HEADER = "webhook-signature";
+var SVIX_ID_HEADER = "svix-id";
+var SVIX_TIMESTAMP_HEADER = "svix-timestamp";
+var SVIX_SIGNATURE_HEADER = "svix-signature";
+function createStandardWebhookHeaders(request) {
+  const headers = {};
+  const svixId = request.headers.get(SVIX_ID_HEADER)?.trim();
+  const svixTimestamp = request.headers.get(SVIX_TIMESTAMP_HEADER)?.trim();
+  const svixSignature = request.headers.get(SVIX_SIGNATURE_HEADER)?.trim();
+  if (svixId) {
+    headers[STANDARD_WEBHOOK_ID_HEADER] = svixId;
+  }
+  if (svixTimestamp) {
+    headers[STANDARD_WEBHOOK_TIMESTAMP_HEADER] = svixTimestamp;
+  }
+  if (svixSignature) {
+    headers[STANDARD_WEBHOOK_SIGNATURE_HEADER] = svixSignature;
+  }
+  return headers;
+}
+async function verifyWebhook(request, options = {}) {
+  const secret = options.signingSecret ?? getEnvVariable("CLERK_WEBHOOK_SIGNING_SECRET");
+  if (!secret) {
+    return errorThrower.throw(
+      "Missing webhook signing secret. Set the CLERK_WEBHOOK_SIGNING_SECRET environment variable with the webhook secret from the Clerk Dashboard."
+    );
+  }
+  const webhookId = request.headers.get(SVIX_ID_HEADER)?.trim();
+  const webhookTimestamp = request.headers.get(SVIX_TIMESTAMP_HEADER)?.trim();
+  const webhookSignature = request.headers.get(SVIX_SIGNATURE_HEADER)?.trim();
+  if (!webhookId || !webhookTimestamp || !webhookSignature) {
+    const missingHeaders = [];
+    if (!webhookId) {
+      missingHeaders.push(SVIX_ID_HEADER);
+    }
+    if (!webhookTimestamp) {
+      missingHeaders.push(SVIX_TIMESTAMP_HEADER);
+    }
+    if (!webhookSignature) {
+      missingHeaders.push(SVIX_SIGNATURE_HEADER);
+    }
+    return errorThrower.throw(`Missing required webhook headers: ${missingHeaders.join(", ")}`);
+  }
+  const body = await request.text();
+  const standardHeaders = createStandardWebhookHeaders(request);
+  const webhook = new Webhook(secret);
+  try {
+    const payload = webhook.verify(body, standardHeaders);
+    return {
+      type: payload.type,
+      object: "event",
+      data: payload.data,
+      event_attributes: payload.event_attributes
+    };
+  } catch (e) {
+    return errorThrower.throw(`Unable to verify incoming webhook: ${e instanceof Error ? e.message : "Unknown error"}`);
+  }
+}
+export {
+  verifyWebhook
+};
+//# sourceMappingURL=webhooks.mjs.map

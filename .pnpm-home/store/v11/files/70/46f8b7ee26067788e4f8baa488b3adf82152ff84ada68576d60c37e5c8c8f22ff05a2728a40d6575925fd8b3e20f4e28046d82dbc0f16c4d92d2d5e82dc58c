@@ -1,0 +1,2 @@
+Object.defineProperty(exports,Symbol.toStringTag,{value:`Module`});const e=require(`./purry.cjs`);function t(...t){return e.purry(n,t)}const n=(e,t)=>{for(let n=e.length-1;n>=0;n--)if(t(e[n],n,e))return n;return-1};exports.findLastIndex=t;
+//# sourceMappingURL=findLastIndex.cjs.map

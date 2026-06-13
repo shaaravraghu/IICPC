@@ -1,0 +1,53 @@
+{
+  "name": "@orval/axios",
+  "version": "8.9.1",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/orval-labs/orval.git",
+    "directory": "packages/axios"
+  },
+  "homepage": "https://orval.dev/docs/guides/custom-axios",
+  "bugs": {
+    "url": "https://github.com/orval-labs/orval/issues"
+  },
+  "type": "module",
+  "types": "./dist/index.d.mts",
+  "exports": {
+    ".": {
+      "development": "./src/index.ts",
+      "default": "./dist/index.mjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "!dist/**/*.d.ts.map",
+    "!dist/**/*.d.mts.map"
+  ],
+  "scripts": {
+    "build": "tsdown --config-loader unrun",
+    "dev": "tsdown --config-loader unrun --watch src",
+    "lint": "eslint .",
+    "test": "vitest",
+    "typecheck": "tsc --noEmit",
+    "clean": "rimraf .turbo dist",
+    "nuke": "rimraf .turbo dist node_modules"
+  },
+  "dependencies": {
+    "@orval/core": "8.9.1"
+  },
+  "devDependencies": {
+    "eslint": "10.1.0",
+    "rimraf": "6.1.2",
+    "tsdown": "0.21.9",
+    "typescript": "5.9.3",
+    "vitest": "4.0.18"
+  },
+  "publishConfig": {
+    "exports": {
+      ".": "./dist/index.mjs",
+      "./package.json": "./package.json"
+    }
+  }
+}

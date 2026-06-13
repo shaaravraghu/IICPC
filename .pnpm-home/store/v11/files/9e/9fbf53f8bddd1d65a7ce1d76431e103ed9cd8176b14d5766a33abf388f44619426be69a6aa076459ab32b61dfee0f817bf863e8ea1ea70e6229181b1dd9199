@@ -1,0 +1,1 @@
+{"version":3,"sources":["../src/types/index.ts"],"sourcesContent":["// Re-export all shared types\nexport type * from '@clerk/shared/types';\n\n// Re-export Express-specific types\nexport type { AuthenticateRequestParams, ClerkMiddlewareOptions, ExpressRequestWithAuth } from '../types';\n"],"mappings":";;;;;;;;;;;;;;;;AAAA;AAAA;","names":[]}

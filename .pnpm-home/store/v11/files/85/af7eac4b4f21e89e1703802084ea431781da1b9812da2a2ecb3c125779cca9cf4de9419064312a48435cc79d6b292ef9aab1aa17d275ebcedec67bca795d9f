@@ -1,0 +1,2 @@
+Object.defineProperty(exports,Symbol.toStringTag,{value:`Module`});const e=require(`./lazyDataLastImpl-DdpJofHC.cjs`);function t(t,n,r){let i=t.length-n.length;if(i===0)return t(...n);if(i===1)return e.t(t,n,r);throw Error(`Wrong number of arguments`)}exports.purry=t;
+//# sourceMappingURL=purry.cjs.map

@@ -11,6 +11,7 @@
     "resolveJsonModule": true,
     "allowImportingTsExtensions": true,
     "moduleResolution": "bundler",
+    "target": "ESNext",
     "types": ["node", "vite/client"],
     "paths": {
       "@/*": ["./src/*"]

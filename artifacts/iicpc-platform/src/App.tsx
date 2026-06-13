@@ -37,9 +37,8 @@ function stripBase(path: string): string {
     : path;
 }
 
-if (!clerkPubKey) {
-  throw new Error("Missing VITE_CLERK_PUBLISHABLE_KEY in .env file");
-}
+const rawClerkPubKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
+const isLocalDevWithoutClerk = !rawClerkPubKey || rawClerkPubKey === "pk_test_local" || !rawClerkPubKey.startsWith("pk_");
 
 const clerkAppearance = {
   theme: dark,
@@ -393,7 +392,41 @@ function ClerkProviderWithRoutes() {
   );
 }
 
+function AppWithoutClerk() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <WebSocketProvider>
+        <TooltipProvider>
+          <SidebarProvider>
+            <AppSidebar />
+            <main className="flex-1 overflow-auto bg-background flex flex-col min-h-screen">
+              <Switch>
+                <Route path="/" component={Home} />
+                <Route path="/editor" component={Editor} />
+                <Route path="/leaderboard" component={Leaderboard} />
+                <Route path="/paper-trading" component={PaperTrading} />
+                <Route path="/learn" component={Learn} />
+                <Route path="/profile" component={Profile} />
+                <Route component={NotFound} />
+              </Switch>
+            </main>
+          </SidebarProvider>
+          <Toaster />
+        </TooltipProvider>
+      </WebSocketProvider>
+    </QueryClientProvider>
+  );
+}
+
 function App() {
+  if (isLocalDevWithoutClerk) {
+    return (
+      <WouterRouter base={basePath}>
+        <AppWithoutClerk />
+      </WouterRouter>
+    );
+  }
+
   return (
     <WouterRouter base={basePath}>
       <ClerkProviderWithRoutes />

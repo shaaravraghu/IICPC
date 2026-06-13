@@ -1,0 +1,79 @@
+import type { ClerkRequest } from './clerkRequest';
+import type { AuthenticateRequestOptions } from './types';
+interface AuthenticateContext extends AuthenticateRequestOptions {
+    accept: string | undefined;
+    forwardedHost: string | undefined;
+    forwardedProto: string | undefined;
+    host: string | undefined;
+    method: string;
+    origin: string | undefined;
+    referrer: string | undefined;
+    secFetchDest: string | undefined;
+    tokenInHeader: string | undefined;
+    userAgent: string | undefined;
+    clientUat: number;
+    refreshTokenInCookie: string | undefined;
+    sessionTokenInCookie: string | undefined;
+    devBrowserToken: string | undefined;
+    handshakeNonce: string | undefined;
+    handshakeRedirectLoopCounter: number;
+    handshakeToken: string | undefined;
+    clerkUrl: URL;
+    frontendApi: string;
+    instanceType: string;
+    publishableKey: string;
+}
+/**
+ * All data required to authenticate a request.
+ * This is the data we use to decide whether a request
+ * is in a signed in or signed out state or if we need
+ * to perform a handshake.
+ */
+declare class AuthenticateContext implements AuthenticateContext {
+    private cookieSuffix;
+    private clerkRequest;
+    /**
+     * The original Clerk frontend API URL, extracted from publishable key before proxy URL override.
+     * Used for backend operations like token validation and issuer checking.
+     */
+    private originalFrontendApi;
+    /**
+     * Retrieves the session token from either the cookie or the header.
+     *
+     * @returns {string | undefined} The session token if available, otherwise undefined.
+     */
+    get sessionToken(): string | undefined;
+    constructor(cookieSuffix: string, clerkRequest: ClerkRequest, options: AuthenticateRequestOptions);
+    usesSuffixedCookies(): boolean;
+    /**
+     * Determines if the request came from a different origin based on the referrer header.
+     * Used for cross-origin detection in multi-domain authentication flows.
+     *
+     * @returns {boolean} True if referrer exists and is from a different origin, false otherwise.
+     */
+    isCrossOriginReferrer(): boolean;
+    /**
+     * Determines if the referrer URL is from a Clerk domain (accounts portal or FAPI).
+     * This includes both development and production account portal domains, as well as FAPI domains
+     * used for redirect-based authentication flows.
+     *
+     * @returns {boolean} True if the referrer is from a Clerk accounts portal or FAPI domain, false otherwise
+     */
+    isKnownClerkReferrer(): boolean;
+    private initPublishableKeyValues;
+    private initHeaderValues;
+    private initCookieValues;
+    private initHandshakeValues;
+    private getQueryParam;
+    private getHeader;
+    private getCookie;
+    private getSuffixedCookie;
+    private getSuffixedOrUnSuffixedCookie;
+    private parseAuthorizationHeader;
+    private tokenHasIssuer;
+    private tokenBelongsToInstance;
+    private sessionExpired;
+}
+export type { AuthenticateContext };
+export declare const createAuthenticateContext: (clerkRequest: ClerkRequest, options: AuthenticateRequestOptions) => Promise<AuthenticateContext>;
+//# sourceMappingURL=authenticateContext.d.ts.map

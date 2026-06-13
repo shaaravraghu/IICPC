@@ -1,0 +1,5 @@
+import "./constants-Bta24VLk.mjs";
+import "./instance-BmZr0cdE.mjs";
+import { _ as withoutTrailingSlash, a as hasLeadingSlash, c as isCurrentDevAccountPortalOrigin, d as joinURL, f as parseSearchParams, g as withoutLeadingSlash, h as withTrailingSlash, i as getScriptUrl, l as isLegacyDevAccountPortalOrigin, m as withLeadingSlash, n as cleanDoubleSlashes, o as hasTrailingSlash, p as stripScheme, r as getClerkJsMajorVersionOrTag, s as isAbsoluteUrl, t as addClerkPrefix, u as isNonEmptyURL } from "./url-C6gPMFx5.mjs";
+
+export { addClerkPrefix, cleanDoubleSlashes, getClerkJsMajorVersionOrTag, getScriptUrl, hasLeadingSlash, hasTrailingSlash, isAbsoluteUrl, isCurrentDevAccountPortalOrigin, isLegacyDevAccountPortalOrigin, isNonEmptyURL, joinURL, parseSearchParams, stripScheme, withLeadingSlash, withTrailingSlash, withoutLeadingSlash, withoutTrailingSlash };

@@ -1,0 +1,2 @@
+Object.defineProperty(exports,Symbol.toStringTag,{value:`Module`});const e=require(`./purry.cjs`);function t(...t){return e.purry(n,t)}const n=(e,t)=>{let n=Object.create(null);for(let r=0;r<e.length;r++){let i=e[r],a=t(i,r,e);if(a!==void 0){let e=n[a];e===void 0?n[a]=[i]:e.push(i)}}return Object.setPrototypeOf(n,Object.prototype),n};exports.groupBy=t;
+//# sourceMappingURL=groupBy.cjs.map

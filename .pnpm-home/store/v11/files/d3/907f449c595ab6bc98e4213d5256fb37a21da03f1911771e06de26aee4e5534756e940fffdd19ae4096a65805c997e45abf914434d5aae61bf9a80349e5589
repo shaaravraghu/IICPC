@@ -1,0 +1,2 @@
+Object.defineProperty(exports,Symbol.toStringTag,{value:`Module`});const e=require(`./purry.cjs`);function t(...t){return e.purry(n,t)}const n=(e,t)=>{if(e.length===0)return NaN;let n=0;for(let[r,i]of e.entries())n+=t(i,r,e);return n/e.length};exports.meanBy=t;
+//# sourceMappingURL=meanBy.cjs.map

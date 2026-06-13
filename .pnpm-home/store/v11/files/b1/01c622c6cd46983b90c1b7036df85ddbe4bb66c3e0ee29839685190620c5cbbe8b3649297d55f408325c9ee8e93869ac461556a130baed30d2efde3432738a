@@ -1,0 +1,2 @@
+Object.defineProperty(exports,Symbol.toStringTag,{value:`Module`});const e=require(`./purry.cjs`),t=require(`./words-Daigshpc.cjs`);function n(...t){return e.purry(r,t)}const r=e=>t.t(e).join(`_`).toLowerCase();exports.toSnakeCase=n;
+//# sourceMappingURL=toSnakeCase.cjs.map

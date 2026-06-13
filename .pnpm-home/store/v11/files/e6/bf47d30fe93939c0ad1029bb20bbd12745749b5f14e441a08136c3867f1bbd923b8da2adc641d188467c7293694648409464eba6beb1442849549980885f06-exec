@@ -1,0 +1,99 @@
+#!/usr/bin/env node
+import { c as description, i as startWatcher, l as name, n as loadConfigFile, r as generateSpec, s as normalizeOptions, t as findConfigFile, u as version } from "../config-DHMhmS0P.mjs";
+import path from "node:path";
+import { Option, program } from "@commander-js/extra-typings";
+import { ErrorWithTag, OutputClient, OutputMode, SupportedFormatter, getWarningCount, isString, log, logError, resetWarnings, setVerbose, startMessage } from "@orval/core";
+//#region src/bin/orval.ts
+const orvalMessage = startMessage({
+	name,
+	version,
+	description
+});
+const cli = program.name("orval").description("Instantly generate TypeScript clients from your OpenAPI specification").version(version);
+cli.addOption(new Option("-o, --output <path>", "output file destination").conflicts(["config", "project"])).addOption(new Option("-i, --input <path>", "input file (yaml or json openapi specs)").conflicts(["config", "project"])).addOption(new Option("-c, --config <path>", "override flags by a config file").conflicts(["input", "output"])).addOption(new Option("-p, --project <name...>", "focus one or more projects of the config").conflicts(["input", "output"])).addOption(new Option("-m, --mode <name>", "default mode that will be used").choices(Object.values(OutputMode))).option("-w, --watch [paths...]", "Watch mode, if path is not specified, it watches the input target").addOption(new Option("--client <name>", "default client that will be used").choices(Object.values(OutputClient))).option("--mock", "activate the mock").option("--clean [paths...]", "Clean output directory").addOption(new Option("--formatter <name>", "Format generated files (prettier, biome, oxfmt)").choices(Object.values(SupportedFormatter))).option("--tsconfig <path>", "path to your tsconfig file").option("--verbose", "Enable verbose logging").option("--fail-on-warnings", "Exit with error code 1 when warnings are emitted").action(async (options) => {
+	if (options.verbose) setVerbose(true);
+	resetWarnings();
+	log(orvalMessage);
+	if (isString(options.input) && isString(options.output)) {
+		const normalizedOptions = await normalizeOptions({
+			input: options.input,
+			output: {
+				target: options.output,
+				clean: options.clean,
+				formatter: options.formatter,
+				mock: options.mock,
+				client: options.client,
+				mode: options.mode,
+				tsconfig: options.tsconfig
+			}
+		});
+		try {
+			await generateSpec(process.cwd(), normalizedOptions);
+		} catch (error) {
+			if (error instanceof ErrorWithTag) logError(error.cause, error.tag);
+			else logError(error);
+			process.exit(1);
+		}
+		if (options.watch) await startWatcher(options.watch, async () => {
+			resetWarnings();
+			try {
+				await generateSpec(process.cwd(), normalizedOptions);
+			} catch (error) {
+				logError(error);
+				process.exit(1);
+			}
+			if (options.failOnWarnings && getWarningCount() > 0) {
+				logError(`Process exited with ${getWarningCount()} warning(s) due to --fail-on-warnings flag`);
+				process.exit(1);
+			}
+		}, normalizedOptions.input.target);
+	} else {
+		const configFilePath = findConfigFile(options.config);
+		const workspace = path.dirname(configFilePath);
+		const configFile = await loadConfigFile(configFilePath);
+		const missingProjects = options.project?.filter((p) => !Object.hasOwn(configFile, p));
+		if (missingProjects?.length) {
+			logError(`Project not found in config: ${missingProjects.join(", ")}`);
+			process.exit(1);
+		}
+		const configs = Object.entries(configFile).filter(([projectName]) => !Array.isArray(options.project) || options.project.includes(projectName));
+		let hasErrors = false;
+		for (const [projectName, config] of configs) {
+			const normalizedOptions = await normalizeOptions(config, workspace, options);
+			try {
+				await generateSpec(workspace, normalizedOptions, projectName);
+			} catch (error) {
+				hasErrors = true;
+				logError(error, projectName);
+			}
+			if (options.watch !== void 0) {
+				const fileToWatch = isString(normalizedOptions.input.target) ? normalizedOptions.input.target : void 0;
+				await startWatcher(options.watch, async () => {
+					resetWarnings();
+					try {
+						await generateSpec(workspace, normalizedOptions, projectName);
+					} catch (error) {
+						logError(error, projectName);
+					}
+					if (options.failOnWarnings && getWarningCount() > 0) {
+						logError(`Process exited with ${getWarningCount()} warning(s) due to --fail-on-warnings flag`);
+						process.exit(1);
+					}
+				}, fileToWatch);
+			}
+		}
+		if (hasErrors) {
+			logError("One or more project failed, see above for details");
+			process.exit(1);
+		}
+	}
+	if (options.failOnWarnings && getWarningCount() > 0) {
+		logError(`Process exited with ${getWarningCount()} warning(s) due to --fail-on-warnings flag`);
+		process.exit(1);
+	}
+});
+await cli.parseAsync(process.argv);
+//#endregion
+export {};
+
+//# sourceMappingURL=orval.mjs.map

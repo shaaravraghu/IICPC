@@ -1,0 +1,60 @@
+{
+  "name": "@orval/hono",
+  "version": "8.9.1",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/orval-labs/orval.git",
+    "directory": "packages/hono"
+  },
+  "homepage": "https://orval.dev/docs/guides/hono",
+  "bugs": {
+    "url": "https://github.com/orval-labs/orval/issues"
+  },
+  "type": "module",
+  "types": "./dist/index.d.mts",
+  "exports": {
+    ".": {
+      "development": "./src/index.ts",
+      "default": "./dist/index.mjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "!dist/**/*.d.ts.map",
+    "!dist/**/*.d.mts.map"
+  ],
+  "scripts": {
+    "build": "tsdown --config-loader unrun",
+    "dev": "tsdown --config-loader unrun --watch src",
+    "lint": "tsc --noEmit src/zValidator.ts && eslint .",
+    "test": "vitest",
+    "typecheck": "tsc --noEmit",
+    "clean": "rimraf .turbo dist",
+    "nuke": "rimraf .turbo dist node_modules"
+  },
+  "dependencies": {
+    "@orval/core": "8.9.1",
+    "@orval/zod": "8.9.1",
+    "fs-extra": "^11.3.2",
+    "remeda": "^2.33.6"
+  },
+  "devDependencies": {
+    "@hono/zod-validator": "0.7.6",
+    "@types/fs-extra": "^11.0.4",
+    "eslint": "10.1.0",
+    "hono": "4.11.9",
+    "rimraf": "6.1.2",
+    "tsdown": "0.21.9",
+    "typescript": "5.9.3",
+    "vitest": "4.0.18",
+    "zod": "3.25.76"
+  },
+  "publishConfig": {
+    "exports": {
+      ".": "./dist/index.mjs",
+      "./package.json": "./package.json"
+    }
+  }
+}

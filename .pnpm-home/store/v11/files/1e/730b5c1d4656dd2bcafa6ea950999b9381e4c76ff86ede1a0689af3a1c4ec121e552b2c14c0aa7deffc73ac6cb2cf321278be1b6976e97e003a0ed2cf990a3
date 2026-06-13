@@ -1,0 +1,255 @@
+require('./constants-WYhx_umW.js');
+require('./isomorphicAtob-Hkpnx2p8.js');
+require('./isomorphicBtoa-_pSA92Q9.js');
+const require_keys = require('./keys-nhSphkCl.js');
+const require_clerkRuntimeError = require('./clerkRuntimeError-CaS4sM5w.js');
+const require_error = require('./error-DsxScX2y.js');
+require('./retry-DGCmqlcR.js');
+const require_loadScript = require('./loadScript-BnB9d_IW.js');
+const require_proxy = require('./proxy-BrgiQBYj.js');
+require('./instance-C1LlVxIp.js');
+const require_url = require('./url-sAcxbiir.js');
+const require_versionSelector = require('./versionSelector-B4z_iGJ5.js');
+
+//#region src/loadClerkJsScript.ts
+const { isDevOrStagingUrl } = require_keys.createDevOrStagingUrlCache();
+const errorThrower = require_error.buildErrorThrower({ packageName: "@clerk/shared" });
+/**
+* Validates that window.Clerk exists and is properly initialized.
+* This ensures we don't have false positives where the script loads but Clerk is malformed.
+*
+* @returns `true` if window.Clerk exists and has the expected structure with a load method.
+*/
+function isClerkGlobalProperlyLoaded(prop) {
+	if (typeof window === "undefined" || !window[prop]) return false;
+	return !!window[prop];
+}
+const isClerkProperlyLoaded = () => isClerkGlobalProperlyLoaded("Clerk");
+const isClerkUIProperlyLoaded = () => isClerkGlobalProperlyLoaded("__internal_ClerkUICtor");
+/**
+* Checks if an existing script has a request error using Performance API.
+*
+* @param scriptUrl - The URL of the script to check.
+* @returns True if the script has failed to load due to a network/HTTP error.
+*/
+function hasScriptRequestError(scriptUrl) {
+	if (typeof window === "undefined" || !window.performance) return false;
+	const entries = performance.getEntriesByName(scriptUrl, "resource");
+	if (entries.length === 0) return false;
+	const scriptEntry = entries[entries.length - 1];
+	if (scriptEntry.transferSize === 0 && scriptEntry.decodedBodySize === 0) {
+		if (scriptEntry.responseEnd === 0) return true;
+		if (scriptEntry.responseEnd > 0 && scriptEntry.responseStart > 0) return true;
+		if ("responseStatus" in scriptEntry) {
+			if (scriptEntry.responseStatus >= 400) return true;
+			if (scriptEntry.responseStatus === 0) return true;
+		}
+	}
+	return false;
+}
+/**
+* Hotloads the Clerk JS script with robust failure detection.
+*
+* Uses a timeout-based approach to ensure absolute certainty about load success/failure.
+* If the script fails to load within the timeout period, or loads but doesn't create
+* a proper Clerk instance, the promise rejects with an error.
+*
+* @param opts - The options used to build the Clerk JS script URL and load the script.
+*               Must include a `publishableKey` if no existing script is found.
+* @returns Promise that resolves with null if Clerk loads successfully, or rejects with an error.
+*
+* @example
+* ```typescript
+* try {
+*   await loadClerkJsScript({ publishableKey: 'pk_test_...' });
+*   console.log('Clerk loaded successfully');
+* } catch (error) {
+*   console.error('Failed to load Clerk:', error.message);
+* }
+* ```
+*/
+const loadClerkJSScript = async (opts) => {
+	const timeout = opts?.scriptLoadTimeout ?? 15e3;
+	const rejectWith = (error) => new require_clerkRuntimeError.ClerkRuntimeError("Failed to load Clerk JS" + (error?.message ? `, ${error.message}` : ""), {
+		code: "failed_to_load_clerk_js",
+		cause: error
+	});
+	if (isClerkProperlyLoaded()) return null;
+	if (!opts?.publishableKey) {
+		errorThrower.throwMissingPublishableKeyError();
+		return null;
+	}
+	const scriptUrl = clerkJSScriptUrl(opts);
+	const existingScript = document.querySelector("script[data-clerk-js-script]");
+	if (existingScript) if (hasScriptRequestError(scriptUrl)) existingScript.remove();
+	else try {
+		await waitForPredicateWithTimeout(timeout, isClerkProperlyLoaded, rejectWith(), existingScript);
+		return null;
+	} catch {
+		existingScript.remove();
+	}
+	const loadPromise = waitForPredicateWithTimeout(timeout, isClerkProperlyLoaded, rejectWith());
+	require_loadScript.loadScript(scriptUrl, {
+		async: true,
+		crossOrigin: "anonymous",
+		nonce: opts.nonce,
+		beforeLoad: applyAttributesToScript(buildClerkJSScriptAttributes(opts))
+	}).catch((error) => {
+		throw rejectWith(error);
+	});
+	return loadPromise;
+};
+const loadClerkUIScript = async (opts) => {
+	const timeout = opts?.scriptLoadTimeout ?? 15e3;
+	const rejectWith = (error) => new require_clerkRuntimeError.ClerkRuntimeError("Failed to load Clerk UI" + (error?.message ? `, ${error.message}` : ""), {
+		code: "failed_to_load_clerk_ui",
+		cause: error
+	});
+	if (isClerkUIProperlyLoaded()) return null;
+	if (!opts?.publishableKey) {
+		errorThrower.throwMissingPublishableKeyError();
+		return null;
+	}
+	const scriptUrl = clerkUIScriptUrl(opts);
+	const existingScript = document.querySelector("script[data-clerk-ui-script]");
+	if (existingScript) if (hasScriptRequestError(scriptUrl)) existingScript.remove();
+	else try {
+		await waitForPredicateWithTimeout(timeout, isClerkUIProperlyLoaded, rejectWith(), existingScript);
+		return null;
+	} catch {
+		existingScript.remove();
+	}
+	const loadPromise = waitForPredicateWithTimeout(timeout, isClerkUIProperlyLoaded, rejectWith());
+	require_loadScript.loadScript(scriptUrl, {
+		async: true,
+		crossOrigin: "anonymous",
+		nonce: opts.nonce,
+		beforeLoad: applyAttributesToScript(buildClerkUIScriptAttributes(opts))
+	}).catch((error) => {
+		throw rejectWith(error);
+	});
+	return loadPromise;
+};
+const clerkJSScriptUrl = (opts) => {
+	const { __internal_clerkJSUrl, __internal_clerkJSVersion, proxyUrl, domain, publishableKey } = opts;
+	if (__internal_clerkJSUrl) return __internal_clerkJSUrl;
+	const version = require_versionSelector.versionSelector(__internal_clerkJSVersion);
+	if (proxyUrl && require_proxy.isProxyUrlRelative(proxyUrl)) return buildRelativeProxyScriptUrl(proxyUrl, "clerk-js", version, "clerk.browser.js");
+	return `https://${buildScriptHost({
+		publishableKey,
+		proxyUrl,
+		domain
+	})}/npm/@clerk/clerk-js@${version}/dist/clerk.browser.js`;
+};
+const clerkUIScriptUrl = (opts) => {
+	const { __internal_clerkUIUrl, __internal_clerkUIVersion, proxyUrl, domain, publishableKey } = opts;
+	if (__internal_clerkUIUrl) return __internal_clerkUIUrl;
+	const version = require_versionSelector.versionSelector(__internal_clerkUIVersion, "1.14.0");
+	if (proxyUrl && require_proxy.isProxyUrlRelative(proxyUrl)) return buildRelativeProxyScriptUrl(proxyUrl, "ui", version, "ui.browser.js");
+	return `https://${buildScriptHost({
+		publishableKey,
+		proxyUrl,
+		domain
+	})}/npm/@clerk/ui@${version}/dist/ui.browser.js`;
+};
+const buildClerkJSScriptAttributes = (options) => {
+	const obj = {};
+	if (options.publishableKey) obj["data-clerk-publishable-key"] = options.publishableKey;
+	if (options.proxyUrl) obj["data-clerk-proxy-url"] = options.proxyUrl;
+	if (options.domain) obj["data-clerk-domain"] = options.domain;
+	if (options.nonce) obj.nonce = options.nonce;
+	return obj;
+};
+const buildClerkUIScriptAttributes = (options) => {
+	return buildClerkJSScriptAttributes(options);
+};
+const applyAttributesToScript = (attributes) => (script) => {
+	for (const attribute in attributes) script.setAttribute(attribute, attributes[attribute]);
+};
+const stripTrailingSlashes = (value) => {
+	while (value.endsWith("/")) value = value.slice(0, -1);
+	return value;
+};
+const buildRelativeProxyScriptUrl = (proxyUrl, packageName, version, fileName) => {
+	return `${stripTrailingSlashes(proxyUrl)}/npm/@clerk/${packageName}@${version}/dist/${fileName}`;
+};
+const buildScriptHost = (opts) => {
+	const { proxyUrl, domain, publishableKey } = opts;
+	if (!!proxyUrl && require_proxy.isValidProxyUrl(proxyUrl)) {
+		const resolvedProxyUrl = require_proxy.proxyUrlToAbsoluteURL(proxyUrl);
+		if (require_proxy.isProxyUrlRelative(resolvedProxyUrl)) return require_keys.parsePublishableKey(publishableKey)?.frontendApi || "";
+		return resolvedProxyUrl.replace(/http(s)?:\/\//, "");
+	} else if (domain && !isDevOrStagingUrl(require_keys.parsePublishableKey(publishableKey)?.frontendApi || "")) return require_url.addClerkPrefix(domain);
+	else return require_keys.parsePublishableKey(publishableKey)?.frontendApi || "";
+};
+function waitForPredicateWithTimeout(timeoutMs, predicate, rejectWith, existingScript) {
+	return new Promise((resolve, reject) => {
+		let resolved = false;
+		const cleanup = (timeoutId$1, pollInterval$1) => {
+			clearTimeout(timeoutId$1);
+			clearInterval(pollInterval$1);
+		};
+		existingScript?.addEventListener("error", () => {
+			cleanup(timeoutId, pollInterval);
+			reject(rejectWith);
+		});
+		const checkAndResolve = () => {
+			if (resolved) return;
+			if (predicate()) {
+				resolved = true;
+				cleanup(timeoutId, pollInterval);
+				resolve(null);
+			}
+		};
+		const handleTimeout = () => {
+			if (resolved) return;
+			resolved = true;
+			cleanup(timeoutId, pollInterval);
+			if (!predicate()) reject(rejectWith);
+			else resolve(null);
+		};
+		const timeoutId = setTimeout(handleTimeout, timeoutMs);
+		checkAndResolve();
+		const pollInterval = setInterval(() => {
+			if (resolved) {
+				clearInterval(pollInterval);
+				return;
+			}
+			checkAndResolve();
+		}, 100);
+	});
+}
+function setClerkJSLoadingErrorPackageName(packageName) {
+	errorThrower.setPackageName({ packageName });
+}
+/**
+* @deprecated Use `loadClerkJSScript` instead. This alias will be removed in a future major version.
+*/
+const loadClerkJsScript = loadClerkJSScript;
+/**
+* @deprecated Use `clerkJSScriptUrl` instead. This alias will be removed in a future major version.
+*/
+const clerkJsScriptUrl = clerkJSScriptUrl;
+/**
+* @deprecated Use `buildClerkJSScriptAttributes` instead. This alias will be removed in a future major version.
+*/
+const buildClerkJsScriptAttributes = buildClerkJSScriptAttributes;
+/**
+* @deprecated Use `setClerkJSLoadingErrorPackageName` instead. This alias will be removed in a future major version.
+*/
+const setClerkJsLoadingErrorPackageName = setClerkJSLoadingErrorPackageName;
+
+//#endregion
+exports.buildClerkJSScriptAttributes = buildClerkJSScriptAttributes;
+exports.buildClerkJsScriptAttributes = buildClerkJsScriptAttributes;
+exports.buildClerkUIScriptAttributes = buildClerkUIScriptAttributes;
+exports.buildScriptHost = buildScriptHost;
+exports.clerkJSScriptUrl = clerkJSScriptUrl;
+exports.clerkJsScriptUrl = clerkJsScriptUrl;
+exports.clerkUIScriptUrl = clerkUIScriptUrl;
+exports.loadClerkJSScript = loadClerkJSScript;
+exports.loadClerkJsScript = loadClerkJsScript;
+exports.loadClerkUIScript = loadClerkUIScript;
+exports.setClerkJSLoadingErrorPackageName = setClerkJSLoadingErrorPackageName;
+exports.setClerkJsLoadingErrorPackageName = setClerkJsLoadingErrorPackageName;
+//# sourceMappingURL=loadClerkJsScript.js.map
